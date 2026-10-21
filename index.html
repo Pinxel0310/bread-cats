@@ -1,0 +1,1310 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#cdeee0">
+<title>Bread Cats – แมวขนมปัง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* =====================================================
+   Bread Cats — สไตล์
+   โทนเดียวทั้งเกม: พื้นกระดาษครีม หมึกน้ำตาลช็อกโกแลต ปุ่มสีเนย
+   (แมวชมพู/ฟ้าเป็นสีของตัวละครเท่านั้น)
+   ===================================================== */
+:root{
+  --paper:#fff7e8; --ink:#3b2416; --butter:#ffc233; --mint:#cdeee0;
+  --pink:#ff8fb8; --blue:#7cc4ff; --danger:#e8505b;
+  --ease-out:cubic-bezier(.23,1,.32,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--mint);color:var(--ink);
+  font-family:'Mali','Sarabun',system-ui,-apple-system,sans-serif;
+  -webkit-tap-highlight-color:transparent;overscroll-behavior:none;touch-action:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+button,input{font:inherit;color:inherit}
+input{-webkit-user-select:text;user-select:text}
+
+/* ---------- หน้าจอเมนู ---------- */
+.screen{position:fixed;inset:0;display:none;flex-direction:column;justify-content:space-between;align-items:center;
+  padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom));z-index:10;pointer-events:none}
+.screen.on{display:flex}
+.screen>*{pointer-events:auto}
+.brand{text-align:center;margin-top:clamp(2px,2.5vh,24px)}
+.brand h1{margin:0;font-size:clamp(42px,12vw,72px);line-height:.95;letter-spacing:-.03em;font-weight:700;
+  text-shadow:0 3px 0 #fff,0 -2px 0 #fff,2px 0 0 #fff,-2px 0 0 #fff}
+.brand p{margin:10px 0 0;font-size:17px;font-weight:500;background:var(--paper);display:inline-block;padding:4px 14px;border-radius:999px}
+.sheet{width:min(100%,440px);background:var(--paper);border-radius:28px 28px 22px 22px;padding:20px 18px 16px;
+  box-shadow:0 6px 0 rgba(59,36,22,.16);display:flex;flex-direction:column;gap:12px;
+  max-height:calc(100dvh - 150px);overflow:auto;animation:rise .35s var(--ease-out)}
+.sheet h2{margin:0;font-size:22px;letter-spacing:-.01em}
+.sheet p{margin:0;font-size:16px;line-height:1.5}
+.sheet .muted{font-size:14px;opacity:.7}
+@keyframes rise{from{opacity:0;transform:translateY(24px)}}
+
+.btn{min-height:56px;border:0;border-radius:18px;background:#fff;font-weight:700;font-size:18px;padding:0 18px;cursor:pointer;
+  box-shadow:inset 0 0 0 2.5px var(--ink),0 4px 0 var(--ink);touch-action:manipulation;
+  transition:transform .12s var(--ease-out),box-shadow .12s var(--ease-out),opacity .2s}
+.btn:active{transform:translateY(3px) scale(.98);box-shadow:inset 0 0 0 2.5px var(--ink),0 1px 0 var(--ink)}
+.btn.primary{background:var(--butter)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn.link{background:none;box-shadow:none;min-height:44px;text-decoration:underline;text-underline-offset:4px;font-size:16px}
+.btn.link:active{transform:scale(.97);box-shadow:none}
+.row{display:flex;gap:10px}.row>*{flex:1}
+
+.code{font-size:56px;font-weight:700;letter-spacing:.14em;text-align:center;padding:6px 0 2px;margin-right:-.14em}
+.field{width:100%;height:64px;border:0;border-radius:18px;background:#fff;box-shadow:inset 0 0 0 3px var(--ink);
+  text-align:center;font-size:30px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;outline:none}
+.field:focus{box-shadow:inset 0 0 0 3px var(--ink),0 0 0 4px var(--butter)}
+.err{color:var(--danger);font-weight:700;min-height:1.4em}
+
+.cats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cat-card{border:0;border-radius:22px;padding:12px 8px 10px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:var(--tint);box-shadow:inset 0 0 0 3px transparent;cursor:pointer;touch-action:manipulation;
+  transition:transform .12s var(--ease-out),box-shadow .15s,opacity .2s}
+.cat-card:active{transform:scale(.97)}
+.cat-card[data-c=pink]{--tint:#ffdceb;--cat:#ff8fb8}
+.cat-card[data-c=blue]{--tint:#d4ebff;--cat:#7cc4ff}
+.cat-card.mine{box-shadow:inset 0 0 0 4px var(--ink)}
+.cat-card.taken{opacity:.45;pointer-events:none}
+.cat-card svg{width:76px;height:76px}
+.cat-card small{font-weight:500;font-size:13px}
+.stepper{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700}
+.stepper button{width:48px;height:48px;border:0;border-radius:50%;background:#fff;font-size:24px;font-weight:700;
+  box-shadow:inset 0 0 0 2.5px var(--ink);touch-action:manipulation}
+.stepper button:active{transform:scale(.94)}
+.stepper b{min-width:5.5em;text-align:center;font-size:18px}
+
+@media (orientation:landscape) and (max-height:540px){
+  .screen{flex-direction:row;align-items:center}
+  .brand{width:32%;margin:0}
+  .brand h1{font-size:clamp(34px,7vw,56px)}
+  .sheet{width:min(42%,400px);max-height:calc(100dvh - 28px);padding:14px;gap:9px;border-radius:24px}
+  .btn{min-height:48px;font-size:16px}
+  .code{font-size:44px}
+  .cat-card svg{width:56px;height:56px}
+}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;display:none;z-index:8;pointer-events:none}
+#hud.on{display:block}
+.hud-top{position:absolute;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top));
+  display:flex;gap:8px;align-items:center}
+.pill{display:flex;align-items:center;gap:8px;background:var(--paper);border-radius:999px;padding:7px 14px;font-weight:700;font-size:15px;
+  box-shadow:0 3px 0 rgba(59,36,22,.18);white-space:nowrap}
+.pill span{font-weight:500}
+.pill svg{width:20px;height:20px}
+.spacer{flex:1}
+.dot{width:10px;height:10px;border-radius:50%;background:#3fcf7b;flex:none}
+.dot.weak{background:var(--butter)}.dot.off{background:var(--danger)}
+.icon-btn{pointer-events:auto;width:44px;height:44px;border:0;border-radius:50%;background:var(--paper);display:grid;place-items:center;
+  box-shadow:0 3px 0 rgba(59,36,22,.18);touch-action:manipulation;transition:transform .12s var(--ease-out)}
+.icon-btn:active{transform:scale(.93)}
+.icon-btn svg{width:22px;height:22px}
+#hint{position:absolute;top:calc(max(10px,env(safe-area-inset-top)) + 56px);left:50%;transform:translate(-50%,-8px);max-width:min(90vw,520px);
+  background:var(--ink);color:#fff;padding:10px 18px;border-radius:18px;font-size:16px;font-weight:500;text-align:center;line-height:1.4;
+  opacity:0;transition:opacity .25s var(--ease-out),transform .25s var(--ease-out)}
+#hint.on{opacity:1;transform:translate(-50%,0)}
+#touch{position:fixed;inset:0;z-index:5;touch-action:none}
+#joy{position:fixed;left:max(26px,env(safe-area-inset-left));bottom:max(26px,env(safe-area-inset-bottom));width:132px;height:132px;border-radius:50%;
+  background:rgba(255,247,232,.5);box-shadow:inset 0 0 0 3px rgba(59,36,22,.35);pointer-events:none;opacity:.8;transition:opacity .2s}
+#joy.active{opacity:1;background:rgba(255,247,232,.65)}
+#joy i{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;background:var(--butter);
+  box-shadow:inset 0 0 0 3px var(--ink)}
+#btn-jump{pointer-events:auto;position:fixed;right:max(26px,env(safe-area-inset-right));bottom:max(30px,env(safe-area-inset-bottom));width:96px;height:96px;
+  border-radius:50%;border:0;background:var(--butter);box-shadow:inset 0 0 0 3.5px var(--ink),0 5px 0 var(--ink);display:grid;place-items:center;
+  touch-action:none;transition:transform .1s var(--ease-out),box-shadow .1s var(--ease-out)}
+#btn-jump.down{transform:translateY(4px) scale(.96);box-shadow:inset 0 0 0 3.5px var(--ink),0 1px 0 var(--ink)}
+#btn-jump svg{width:44px;height:44px}
+#buddy{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;display:none;place-items:center;background:var(--bc,#fff);
+  box-shadow:inset 0 0 0 3px var(--ink);will-change:transform}
+#buddy svg{width:22px;height:22px}
+@media (orientation:landscape) and (max-height:540px){
+  #joy{width:116px;height:116px;bottom:max(18px,env(safe-area-inset-bottom))}
+  #btn-jump{width:84px;height:84px;bottom:max(22px,env(safe-area-inset-bottom))}
+}
+
+/* ---------- Modal ---------- */
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(59,36,22,.38);z-index:30;padding:16px}
+.modal.on{display:flex}
+.card{width:min(100%,420px);background:var(--paper);border-radius:26px;padding:22px 18px 18px;display:flex;flex-direction:column;gap:12px;text-align:center;
+  box-shadow:0 6px 0 rgba(59,36,22,.2);animation:pop .28s var(--ease-out);max-height:92dvh;overflow:auto}
+.card h2{margin:0;font-size:28px;letter-spacing:-.01em}
+.card p{margin:0;font-size:16px;line-height:1.5}
+.lvgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.lvgrid button{height:46px;border:0;border-radius:14px;background:#fff;font-weight:700;font-size:17px;box-shadow:inset 0 0 0 2.5px var(--ink);touch-action:manipulation}
+.lvgrid button.cur{background:var(--butter)}
+.lvgrid button:active{transform:scale(.95)}
+@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.94)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- ไอคอนใช้ซ้ำ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="catface" viewBox="0 0 100 100">
+    <path d="M16 46 L20 10 L46 26 Z" fill="var(--cat)" stroke="#3b2416" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M84 46 L80 10 L54 26 Z" fill="var(--cat)" stroke="#3b2416" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M23 36 L25 20 L37 27 Z" fill="#ffc2d4"/><path d="M77 36 L75 20 L63 27 Z" fill="#ffc2d4"/>
+    <ellipse cx="50" cy="58" rx="38" ry="32" fill="var(--cat)" stroke="#3b2416" stroke-width="3"/>
+    <ellipse cx="36" cy="56" rx="4.5" ry="6" fill="#3b2416"/><ellipse cx="64" cy="56" rx="4.5" ry="6" fill="#3b2416"/>
+    <circle cx="34.5" cy="53.5" r="1.7" fill="#fff"/><circle cx="62.5" cy="53.5" r="1.7" fill="#fff"/>
+    <ellipse cx="25" cy="68" rx="6" ry="4" fill="#ff6f9a" opacity=".55"/><ellipse cx="75" cy="68" rx="6" ry="4" fill="#ff6f9a" opacity=".55"/>
+    <path d="M45 66 Q50 71 55 66" fill="none" stroke="#3b2416" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M9 61 L23 64 M9 70 L23 69 M91 61 L77 64 M91 70 L77 69" stroke="#3b2416" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+</defs></svg>
+
+<main id="ui">
+  <!-- หน้าแรก -->
+  <section class="screen on" id="sc-title">
+    <header class="brand"><h1>Bread Cats</h1><p>ผจญภัยเบเกอรี่สำหรับ 2 คน · 10 ด่าน</p></header>
+    <div class="sheet">
+      <button class="btn primary" id="btn-host">สร้างห้อง</button>
+      <button class="btn" id="btn-join">เข้าร่วมห้องของแฟน</button>
+      <button class="btn link" id="btn-solo">ลองเล่นคนเดียว (ซ้อมมือ)</button>
+      <p class="muted" style="text-align:center">เล่นแนวนอนจะเห็นด่านชัดกว่านะ</p>
+    </div>
+  </section>
+
+  <!-- สร้างห้อง -->
+  <section class="screen" id="sc-host">
+    <header class="brand"><h1>Bread Cats</h1></header>
+    <div class="sheet">
+      <h2>รหัสห้องของเรา</h2>
+      <div class="code" id="room-code">·····</div>
+      <p id="host-status" style="text-align:center">กำลังสร้างห้อง…</p>
+      <div class="row">
+        <button class="btn" id="btn-copy">คัดลอกรหัส</button>
+        <button class="btn primary" id="btn-share">ส่งให้แฟน</button>
+      </div>
+      <button class="btn link" id="host-back">ยกเลิก</button>
+    </div>
+  </section>
+
+  <!-- เข้าร่วม -->
+  <section class="screen" id="sc-join">
+    <header class="brand"><h1>Bread Cats</h1></header>
+    <div class="sheet">
+      <h2>ใส่รหัสห้องจากแฟน</h2>
+      <input class="field" id="join-code" maxlength="5" inputmode="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="•••••" aria-label="รหัสห้อง">
+      <p class="err" id="join-err"></p>
+      <button class="btn primary" id="btn-connect">เชื่อมต่อ</button>
+      <button class="btn link" id="join-back">กลับ</button>
+    </div>
+  </section>
+
+  <!-- ล็อบบี้เลือกแมว -->
+  <section class="screen" id="sc-lobby">
+    <header class="brand"><h1>Bread Cats</h1><p id="lobby-conn">เชื่อมต่อแล้ว</p></header>
+    <div class="sheet">
+      <h2>เลือกแมวของเรา</h2>
+      <div class="cats">
+        <button class="cat-card" data-c="pink" aria-pressed="false"><svg viewBox="0 0 100 100"><use href="#catface"/></svg>สีชมพู<small>Pink Cat</small></button>
+        <button class="cat-card" data-c="blue" aria-pressed="false"><svg viewBox="0 0 100 100"><use href="#catface"/></svg>สีฟ้า<small>Blue Cat</small></button>
+      </div>
+      <p id="lobby-status" style="text-align:center"></p>
+      <div class="stepper" id="lobby-step">
+        <span>เริ่มที่ด่าน</span>
+        <button id="lv-minus" aria-label="ลดด่าน">−</button><b id="lv-num">1</b><button id="lv-plus" aria-label="เพิ่มด่าน">+</button>
+      </div>
+      <button class="btn primary" id="btn-start">เริ่มเกม</button>
+      <p class="muted" id="lobby-wait" style="text-align:center">รอโฮสต์กดเริ่มเกม</p>
+      <button class="btn link" id="lobby-leave">ออกจากห้อง</button>
+    </div>
+  </section>
+</main>
+
+<!-- HUD ระหว่างเล่น -->
+<div id="hud">
+  <div class="hud-top">
+    <div class="pill"><b id="h-lv">ด่าน 1</b><span id="h-name"></span></div>
+    <div class="pill" id="h-keys"><svg viewBox="0 0 24 24" fill="none" stroke="#3b2416" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="4.5" fill="#ffc233"/><path d="M12.5 12H22M18 12v4M21.5 12v3"/></svg><b id="h-keyn">0/1</b></div>
+    <div class="spacer"></div>
+    <div class="pill"><i class="dot" id="h-dot"></i><span id="h-net">ออนไลน์</span></div>
+    <button class="icon-btn" id="btn-menu" aria-label="เมนู"><svg viewBox="0 0 24 24" fill="none" stroke="#3b2416" stroke-width="2.6" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+  <div id="hint"></div>
+  <div id="buddy"><svg viewBox="0 0 24 24" fill="#3b2416"><path d="M12 3l8 16-8-4-8 4z"/></svg></div>
+  <div id="joy"><i id="joy-thumb"></i></div>
+  <button id="btn-jump" aria-label="กระโดด"><svg viewBox="0 0 24 24" fill="none" stroke="#3b2416" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 11l7-7 7 7"/></svg></button>
+</div>
+<div id="touch"></div>
+
+<!-- Modals -->
+<div class="modal" id="m-menu"><div class="card">
+  <h2>เมนู</h2>
+  <button class="btn" id="mn-respawn">กลับจุดเริ่มด่าน</button>
+  <div id="mn-levels" style="display:none"><p class="muted" style="margin-bottom:8px">เลือกด่าน (เฉพาะโฮสต์)</p><div class="lvgrid" id="lvgrid"></div></div>
+  <div class="row"><button class="btn" id="mn-sound">เสียง: เปิด</button><button class="btn" id="mn-full">เต็มจอ</button></div>
+  <button class="btn primary" id="mn-close">เล่นต่อ</button>
+  <button class="btn link" id="mn-leave">ออกจากห้อง</button>
+</div></div>
+
+<div class="modal" id="m-win"><div class="card"><h2 id="win-title">ผ่านด่านแล้ว!</h2><p id="win-sub">เก่งมากทั้งคู่ กำลังไปด่านต่อไป…</p></div></div>
+
+<div class="modal" id="m-end"><div class="card"><h2>ครบทั้ง 10 ด่าน!</h2><p>ขนมปังปลอดภัยแล้ว เพราะแมวสองตัวช่วยกัน</p>
+  <button class="btn primary" id="end-again">เล่นใหม่ตั้งแต่ด่าน 1</button><p class="muted" id="end-wait" style="display:none">รอโฮสต์เริ่มรอบใหม่</p><button class="btn link" id="end-leave">ออกจากห้อง</button></div></div>
+
+<div class="modal" id="m-dc"><div class="card"><h2 id="dc-title">แฟนหลุดจากห้อง</h2><p id="dc-sub"></p>
+  <button class="btn primary" id="dc-retry">เชื่อมต่อใหม่</button><button class="btn link" id="dc-leave">ออกจากห้อง</button></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script>
+'use strict';
+/* =========================================================================
+   Bread Cats — เกม 3D ออนไลน์ 2 คน (Three.js + PeerJS)
+   โครงสร้างไฟล์:
+     1. LOGIC  : ค่าคงที่ ด่านทั้ง 10 และฟิสิกส์/ชน AABB (ไม่ยุ่งกับ DOM/Three)
+     2. Helper, เสียง
+     3. Three.js: ฉาก ไฟ ตัวแมว
+     4. สร้างโลกจากข้อมูลด่าน
+     5. ระบบเครือข่าย PeerJS
+     6. อินพุต (จอยสติ๊ก/ปุ่ม/คีย์บอร์ด/ลากกล้อง)
+     7. UI และ state machine
+     8. ลูปเกมหลัก
+   ========================================================================= */
+
+/*LOGIC_START*/
+/* ---------- 1. ค่าคงที่และฟิสิกส์ ---------- */
+const CFG={R:0.4,H:1.1,SPEED:6.6,JUMP:10.6,GRAV:27,TERM:-30,COYOTE:0.12,BUFFER:0.12,STEP:0.28};
+const E=0.001;
+
+/* ตัวสร้างด่าน: ทุกด่านวิ่งไปทางแกน -Z
+   plat(x, ยอดพื้นผิวY, z, กว้าง, ลึก, ชนิด, การเคลื่อนที่)  — x,z คือจุดกึ่งกลาง
+   mv = {dx,dy,dz,per,ph}: เคลื่อนจากจุดฐานไปยังฐาน+d แล้วกลับ ทุก per วินาที */
+function LB(name,hint){
+  const L={name,hint,plats:[],hz:[],pads:[],gates:[],keys:[],door:null,spawn:[[-2,0,1.5],[2,0,1.5]]};
+  const api={
+    spawn(x1,y1,z1,x2,y2,z2){L.spawn=[[x1,y1,z1],[x2,y2,z2]];return api;},
+    plat(x,y,z,w,d,t,mv){L.plats.push({x,y,z,w,d,h:1,t:t||'bread',mv:mv||null});return api;},
+    spike(x,y,z,w,d,mv,bl){L.hz.push({k:'spike',x,y,z,w,d,h:0.7,mv:mv||null,bl:bl||null});return api;},
+    butter(x,y,z,w,d){L.hz.push({k:'butter',x,y,z,w,d,h:1.5,mv:null,bl:null});return api;},
+    pad(x,y,z,id,hold){L.pads.push({x,y,z,id,hold:hold||0});return api;},
+    gate(x,y,z,w,h,id,all){L.gates.push({x,y,z,w,h,id,all:!!all});return api;},
+    key(x,y,z){L.keys.push({x,y,z});return api;},
+    door(x,y,z){L.door={x,y,z};return api;},
+    done(){L.minY=Math.min.apply(null,L.plats.map(p=>p.y-p.h));return L;}
+  };
+  return api;
+}
+const BL={on:1.2,off:1.6};          // จังหวะหนามโผล่/หุบ
+const LEVELS=[
+/* 1 */ LB('ขนมปังแผ่นแรก','เก็บกุญแจทอง แล้วพาแฟนเข้าประตูขนมปังด้วยกัน')
+  .plat(0,0,0,9,6,'bread').plat(0,0,-7,4,4,'toast').plat(0,0.5,-12.5,4,3.5,'bread')
+  .plat(3,1,-17,3.5,3.5,'biscuit').plat(-1,1.5,-22,3.5,3.5,'toast')
+  .plat(-1,1.5,-27.5,6,5,'cream').key(-1,2.6,-27.5)
+  .plat(0,2,-34,7,5,'bread').door(0,2,-35.2).done(),
+/* 2 */ LB('สะพานขนมปังปิ้ง','ระวังหนามน้ำตาล! กระโดดข้ามให้พ้น')
+  .plat(0,0,0,9,6,'bread').plat(0,0,-8.5,1.8,6,'toast').plat(0,0,-15,5,3,'biscuit')
+  .plat(3.5,0.5,-20,2.5,2.5,'bread').plat(-1,1,-24,2.5,2.5,'toast').plat(3.5,1.5,-28,2.5,2.5,'biscuit')
+  .plat(0,1.5,-34,8,6,'choc').spike(0,1.5,-34,8,1.6)
+  .plat(0,2,-41,6,5,'cream').key(0,3.1,-41)
+  .plat(0,2,-48.5,7,6,'bread').door(0,2,-49.5).done(),
+/* 3 */ LB('สวิตช์ช่วยกัน','ปุ่มสวิตช์ต้องมีคนยืนกดไว้ — สลับกันกดให้เพื่อนผ่านประตู')
+  .plat(0,0,0,9,6,'bread').pad(-3,0,-1,'r')
+  .plat(0,0,-9,9,10,'toast').gate(0,0,-9,9.6,4,'r').pad(-3,0,-12,'r')
+  .plat(0,0,-19,9,8,'biscuit').pad(-3,0,-17,'b')
+  .plat(0,0,-29,9,8,'bread').gate(0,0,-27.5,9.6,4,'b').pad(-3,0,-31,'b').key(3,1.1,-31)
+  .plat(0,0,-38,7,6,'cream').door(0,0,-39.6).done(),
+/* 4 */ LB('แท่นมาร์ชเมลโลว์','แท่นสีมิ้นต์เคลื่อนที่ได้ รอจังหวะก่อนกระโดด')
+  .plat(0,0,0,8,6,'bread')
+  .plat(-3,0,-6.5,3,3,'cream',{dx:6,dy:0,dz:0,per:5,ph:0})
+  .plat(0,0,-12,4,4,'toast')
+  .plat(0,0.5,-17.5,3.2,3.2,'cream',{dx:0,dy:4,dz:0,per:6.5,ph:0})
+  .plat(0,4.5,-23,4,4,'bread')
+  .plat(3,5,-28,2.6,2.6,'biscuit').plat(-1,5.5,-32,2.6,2.6,'toast').plat(3,6,-36,2.6,2.6,'biscuit')
+  .plat(0,6,-41.5,6,6,'choc').key(0,7.1,-41.5)
+  .plat(-3.5,6,-47.5,3,3,'cream',{dx:7,dy:0,dz:0,per:4.6,ph:0})
+  .plat(0,6,-54,7,6,'bread').door(0,6,-55.4).done(),
+/* 5 */ LB('บ่อเนยร้อน','อย่าตกบ่อเนยร้อน! เดินเลี่ยงหนามให้ดี')
+  .plat(0,0,0,8,6,'bread').butter(0,-0.3,-9.75,14,12.5)
+  .plat(-2.5,0,-5.5,2.6,2.6,'toast').plat(2.5,0,-9,2.6,2.6,'biscuit')
+  .plat(-2.5,0,-12.5,2.6,2.6,'toast').plat(2.5,0,-16,2.6,2.6,'biscuit')
+  .plat(0,0,-21,7,6,'choc').spike(-2.3,0,-19.5,2.4,3).spike(2.3,0,-22.5,2.4,3)
+  .butter(0,-0.3,-28,12,12).plat(0,0,-28.5,1.6,8,'biscuit')
+  .plat(0,0,-37,6,5,'cream').key(0,1.1,-37)
+  .plat(0,0,-43,3,3,'choc').plat(0,0,-50,7,6,'bread')
+  .spike(0,0,-47.8,7,0.8,{dx:0,dy:0,dz:-2,per:2.6,ph:0}).door(0,0,-51.8).done(),
+/* 6 */ LB('เหยียบพร้อมกัน','ต้องเหยียบสวิตช์ทั้งสองอันให้ทัน แล้ววิ่งไปประตูด้วยกัน')
+  .plat(0,0,0,9,6,'bread').pad(-3.5,0,-1.5,'g',3).pad(3.5,0,-1.5,'g',3)
+  .plat(0,0,-9,9,9,'toast').gate(0,0,-10,9.6,4,'g',true)
+  .plat(0,0,-18,9,6,'bread').pad(-3.5,0,-16.5,'h',3).pad(3.5,0,-16.5,'h',3)
+  .plat(0,0,-27,9,8,'choc').gate(0,0,-25,9.6,4,'h',true)
+  .plat(0,0,-36,9,6,'cream').key(0,1.1,-36)
+  .plat(0,0,-44,7,6,'bread').door(0,0,-45.5).done(),
+/* 7 */ LB('กุญแจสามดอก','ตามหากุญแจให้ครบ 3 ดอก — สวิตช์สีฟ้าเปิดทางไปกุญแจที่ซ่อนอยู่')
+  .spawn(-2,0,2,2,0,2).plat(0,0,0,10,10,'bread')
+  .plat(-9,0.6,0,3,3,'toast').plat(-13,1.2,-2,3,3,'biscuit').plat(-13,2,-6.5,3,3,'toast')
+  .plat(-9,2.8,-8,3,3,'biscuit').plat(-9,3.6,-12.5,4,4,'cream').key(-9,4.7,-12.5)
+  .butter(13,-0.3,-7,15,16)
+  .plat(8.5,0,0,3,3,'cream',{dx:0,dy:0,dz:-6,per:6,ph:0})
+  .plat(8.5,0,-12,4,4,'toast').pad(8.5,0,-12,'b')
+  .plat(12.5,0.5,-10.5,2.6,2.6,'biscuit').plat(16,1,-8,2.6,2.6,'toast')
+  .plat(16.5,1.5,-3.5,4,4,'choc').key(16.5,2.6,-3.5)
+  .plat(0,0,-9,6,8,'toast').gate(0,0,-12,6.6,4,'b')
+  .plat(0,0,-17.5,6,6,'cream').key(0,1.1,-17.5)
+  .plat(0,0,10.5,6,5,'bread').door(0,0,12).done(),
+/* 8 */ LB('ลิฟต์ขนมปังปิ้ง','ขึ้นลิฟต์ขนมปัง แล้วช่วยกันเปิดประตูสีแดง')
+  .plat(0,0,0,8,6,'bread')
+  .plat(0,0,-7,3.4,3.4,'cream',{dx:0,dy:5,dz:0,per:7,ph:0})
+  .plat(0,5,-12.5,5,4,'toast')
+  .plat(-4,5,-18.5,3,3,'cream',{dx:8,dy:0,dz:0,per:5,ph:0})
+  .plat(0,5,-24.5,5,4,'biscuit').spike(0,5,-24.5,5,1.2)
+  .plat(-7,5,-24.5,3,3,'cream').pad(-7,5,-24.5,'r')
+  .plat(0,5,-30,4,4,'toast').gate(0,5,-30.5,4.6,4,'r')
+  .plat(0,5,-36,6,5,'cream').pad(2,5,-35,'r').key(-1.5,6.1,-37)
+  .plat(0,5,-42,3.4,3.4,'cream',{dx:0,dy:4,dz:0,per:6,ph:0})
+  .plat(0,9,-48,7,6,'bread').spike(0,9,-46.2,7,0.8,{dx:0,dy:0,dz:-2,per:2.2,ph:0}).door(0,9,-50).done(),
+/* 9 */ LB('หนามเร่งสปีด','หนามบางอันโผล่เป็นจังหวะ ดูจังหวะแล้วค่อยข้าม')
+  .plat(0,0,0,8,6,'bread').plat(0,0,-12,6,16,'choc')
+  .spike(0,0,-8,6,0.7,{dx:0,dy:0,dz:-3,per:2.4,ph:0})
+  .spike(0,0,-17,6,0.7,{dx:0,dy:0,dz:3,per:2.4,ph:0.5})
+  .spike(-1.75,0,-13,2.5,2.5,null,{on:1.2,off:1.6,ph:0})
+  .spike(1.75,0,-13,2.5,2.5,null,{on:1.2,off:1.6,ph:1.4})
+  .plat(0,0,-23.5,3,3,'toast').plat(0,0,-30,1.6,6,'biscuit').spike(0,0,-30,1.6,1.2,null,{on:1.2,off:1.8,ph:0})
+  .plat(-3.5,0,-36.5,3,3,'cream',{dx:7,dy:0,dz:0,per:3.6,ph:0})
+  .plat(3.5,0.5,-41.5,3,3,'cream',{dx:-7,dy:0,dz:0,per:3.6,ph:0.5})
+  .plat(0,0.5,-47,7,5,'choc').spike(0,0.5,-46,7,1.4,null,{on:1.2,off:1.6,ph:0.7}).key(0,1.6,-47)
+  .plat(0,0.5,-53,3,3,'toast').plat(0,0.5,-59,7,6,'bread')
+  .spike(0,0.5,-56.8,7,0.7,{dx:0,dy:0,dz:-2,per:2.2,ph:0}).door(0,0.5,-60.9).done(),
+/* 10 */ LB('ปราสาทเบเกอรี่','ด่านสุดท้าย! ใช้ทุกท่าที่เรียนมา')
+  .plat(0,0,0,9,6,'bread').pad(-3.5,0,-1.5,'g',3).pad(3.5,0,-1.5,'g',3)
+  .plat(0,0,-9,9,10,'toast').gate(0,0,-9.5,9.6,4,'g',true)
+  .plat(0,0,-18,9,6,'bread').butter(0,-0.3,-28,16,12)
+  .plat(-3.5,0,-25.5,3,3,'cream',{dx:7,dy:0,dz:0,per:4,ph:0})
+  .plat(3.5,0.5,-30.5,3,3,'cream',{dx:-7,dy:0,dz:0,per:4,ph:0.5})
+  .plat(0,0.5,-36,6,5,'choc').key(0,1.6,-36)
+  .plat(0,0.5,-42,6,5,'toast').pad(-2,0.5,-41,'b')
+  .plat(0,0.5,-49,7,6,'bread').gate(0,0.5,-48,7.6,4,'b').pad(2,0.5,-50.5,'b').key(-2.5,1.6,-50.5)
+  .plat(0,0.5,-57,1.6,6,'biscuit').spike(0,0.5,-57,1.6,1.2,null,{on:1.2,off:1.8,ph:0})
+  .plat(0,0.5,-63,4,4,'cream')
+  .plat(0,0.5,-70,1.6,8,'biscuit').spike(0,0.5,-68,1.6,1.2,null,{on:1.2,off:1.8,ph:0.9}).spike(0,0.5,-72,1.6,1.2,null,{on:1.2,off:1.8,ph:1.8})
+  .plat(0,1,-79,6,6,'choc').key(0,2.1,-79)
+  .plat(0,1,-87,8,7,'bread').spike(0,1,-84.8,8,0.7,{dx:0,dy:0,dz:-2,per:2.2,ph:0}).door(0,1,-89).done()
+];
+
+/* กล่องชน (AABB) ของพื้น/ประตูกั้น */
+function makeSolid(p){
+  return {def:p,mv:p.mv||null,hw:p.w/2,hd:p.d/2,h:p.h||1,cx:p.x,cy:p.y,cz:p.z,dx:0,dy:0,dz:0,minx:0,maxx:0,miny:0,maxy:0,minz:0,maxz:0};
+}
+function mvK(mv,t){return 0.5-0.5*Math.cos(Math.PI*2*(t/mv.per+(mv.ph||0)));}
+function placeSolid(s,t){
+  let x=s.def.x,y=s.def.y,z=s.def.z;
+  if(s.mv){const k=mvK(s.mv,t);x+=s.mv.dx*k;y+=s.mv.dy*k;z+=s.mv.dz*k;}
+  s.dx=x-s.cx;s.dy=y-s.cy;s.dz=z-s.cz;s.cx=x;s.cy=y;s.cz=z;
+  s.minx=x-s.hw;s.maxx=x+s.hw;s.miny=y-s.h;s.maxy=y;s.minz=z-s.hd;s.maxz=z+s.hd;
+}
+function ovl(s,x,y,z){
+  const R=CFG.R,H=CFG.H;
+  return x+R>s.minx+E&&x-R<s.maxx-E&&z+R>s.minz+E&&z-R<s.maxz-E&&y+H>s.miny+E&&y<s.maxy-E;
+}
+/* เคลื่อนตัวละคร 1 ก้าวเล็ก: แกน X → Z → Y แล้วดันออกถ้ายังทับกัน */
+function moveBody(b,solids,dt){
+  const R=CFG.R,H=CFG.H;
+  b.x+=b.vx*dt;
+  for(const s of solids){ if(ovl(s,b.x,b.y,b.z)){
+    if(s.maxy-b.y<=CFG.STEP&&b.vy<=0){b.y=s.maxy;continue;}              // ก้าวขึ้นขอบเตี้ยๆ ได้เอง
+    if(b.vx>0||(b.vx===0&&b.x<(s.minx+s.maxx)/2))b.x=s.minx-R;else b.x=s.maxx+R;
+    b.vx=0;}}
+  b.z+=b.vz*dt;
+  for(const s of solids){ if(ovl(s,b.x,b.y,b.z)){
+    if(s.maxy-b.y<=CFG.STEP&&b.vy<=0){b.y=s.maxy;continue;}
+    if(b.vz>0||(b.vz===0&&b.z<(s.minz+s.maxz)/2))b.z=s.minz-R;else b.z=s.maxz+R;
+    b.vz=0;}}
+  const py=b.y;b.y+=b.vy*dt;b.grounded=false;b.stand=null;
+  for(const s of solids){ if(ovl(s,b.x,b.y,b.z)){
+    if(b.vy<=0&&py>=s.maxy-0.12){b.y=s.maxy;b.vy=0;b.grounded=true;b.stand=s;}
+    else if(b.vy>0&&py+H<=s.miny+0.12){b.y=s.miny-H;b.vy=0;}}}
+  for(let k=0;k<3;k++){            // กันติดในกล่อง (เช่น ประตูกั้นปิดทับ)
+    let hit=false;
+    for(const s of solids){ if(ovl(s,b.x,b.y,b.z)){
+      hit=true;
+      const up=s.maxy-b.y,l=b.x+R-s.minx,r=s.maxx-(b.x-R),f=b.z+R-s.minz,bk=s.maxz-(b.z-R);
+      const m=Math.min(up,l,r,f,bk);
+      if(m===up){b.y=s.maxy;b.vy=Math.max(b.vy,0);b.grounded=true;b.stand=s;}
+      else if(m===l)b.x=s.minx-R;else if(m===r)b.x=s.maxx+R;else if(m===f)b.z=s.minz-R;else b.z=s.maxz+R;}}
+    if(!hit)break;
+  }
+}
+/*LOGIC_END*/
+
+/* ---------- 2. Helper และเสียง ---------- */
+const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+function angLerp(a,b,t){const d=((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;return a+d*t;}
+function rng(seed){let s=(seed*2654435761)>>>0||1;return()=>{s^=s<<13;s>>>=0;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
+
+const Snd=(()=>{
+  let ac=null,muted=false;
+  function ensure(){
+    if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}
+    if(ac&&ac.state==='suspended')ac.resume();
+  }
+  function tone(f,d,type,v,to){
+    if(!ac||muted)return;
+    const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
+    o.type=type||'sine';o.frequency.setValueAtTime(f,t);
+    if(to)o.frequency.exponentialRampToValueAtTime(to,t+d);
+    g.gain.setValueAtTime(v||0.1,t);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+d+0.02);
+  }
+  const later=(fn,ms)=>setTimeout(fn,ms);
+  return{
+    ensure,
+    get muted(){return muted;},set muted(v){muted=v;},
+    jump(){tone(380,.16,'triangle',.09,720);},
+    key(){tone(880,.1,'square',.05);later(()=>tone(1320,.2,'square',.05),90);},
+    pad(on){tone(on?520:360,.08,'sine',.07);},
+    die(){tone(300,.3,'sawtooth',.06,90);},
+    win(){[523,659,784,1047].forEach((f,i)=>later(()=>tone(f,.22,'triangle',.09),i*110));},
+    join(){tone(660,.12,'sine',.08);later(()=>tone(990,.16,'sine',.08),110);}
+  };
+})();
+
+if(!window.THREE){document.body.innerHTML='<p style="padding:24px;font-size:18px">โหลด Three.js ไม่สำเร็จ กรุณาเช็กอินเทอร์เน็ตแล้วรีเฟรช</p>';throw new Error('THREE missing');}
+
+/* ---------- 3. Three.js: ฉาก ไฟ กล้อง ---------- */
+const SKY=0xcdeee0;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(SKY);
+scene.fog=new THREE.Fog(SKY,45,140);
+const camera=new THREE.PerspectiveCamera(58,1,0.1,400);
+const renderer=new THREE.WebGLRenderer({canvas:$('#c'),antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+scene.add(new THREE.HemisphereLight(0xfff8ea,0xd8b48a,0.95));
+const sun=new THREE.DirectionalLight(0xffffff,0.75);sun.position.set(12,24,10);scene.add(sun);
+function resize(){
+  const w=window.innerWidth,h=window.innerHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h;camera.fov=w/h<0.8?74:58;camera.updateProjectionMatrix();
+}
+window.addEventListener('resize',resize);resize();
+
+const worldGroup=new THREE.Group(),playersGroup=new THREE.Group(),menuGroup=new THREE.Group();
+scene.add(worldGroup,playersGroup,menuGroup);
+const matCache={};
+const decorList=[],menuDecor=[];   // ของตกแต่งลอยฟ้า: ในด่าน / ในฉากเมนู
+function M(c,em){const k=c+'_'+(em||0);return matCache[k]||(matCache[k]=new THREE.MeshLambertMaterial({color:c,emissive:em||0}));}
+function flat(g){const n=g.index?g.toNonIndexed():g;n.computeVertexNormals();return n;}
+
+/* ---------- ตัวแมว ---------- */
+const CAT_HEX={pink:0xff8fb8,blue:0x7cc4ff,none:0xf1e2cc};
+function makeCat(hex){
+  const root=new THREE.Group(),body=new THREE.Group();body.position.y=0.64;root.add(body);
+  const mats=[];
+  const mk=(c)=>{const m=new THREE.MeshLambertMaterial({color:c,transparent:true});mats.push(m);return m;};
+  const headMat=mk(hex);
+  const hg=new THREE.IcosahedronGeometry(0.6,1);hg.computeVertexNormals();
+  const head=new THREE.Mesh(hg,headMat);head.scale.set(1.12,0.96,1);body.add(head);
+  const earG=flat(new THREE.ConeGeometry(0.27,0.48,4)),inG=flat(new THREE.ConeGeometry(0.16,0.3,4));
+  const inMat=mk(0xffc2d4);
+  [-1,1].forEach(s=>{
+    const e=new THREE.Mesh(earG,headMat);e.position.set(s*0.42,0.56,0);e.rotation.set(0,Math.PI/4,-s*0.3);body.add(e);
+    const i=new THREE.Mesh(inG,inMat);i.position.set(s*0.4,0.54,0.12);i.rotation.set(0.15,Math.PI/4,-s*0.3);i.scale.z=0.5;body.add(i);
+  });
+  const eyes=[];
+  const eyeG=new THREE.SphereGeometry(0.075,8,8),shineG=new THREE.SphereGeometry(0.025,6,6);
+  [-1,1].forEach(s=>{
+    const ey=new THREE.Mesh(eyeG,mk(0x2b1a12));ey.position.set(s*0.23,0.06,0.545);ey.scale.set(1,1.25,0.6);body.add(ey);eyes.push(ey);
+    const sh=new THREE.Mesh(shineG,mk(0xffffff));sh.position.set(s*0.215,0.1,0.585);body.add(sh);
+    const ch=new THREE.Mesh(new THREE.SphereGeometry(0.11,8,6),mk(0xff6f9a));ch.position.set(s*0.4,-0.11,0.42);ch.scale.set(1,0.7,0.35);body.add(ch);
+    for(let k=0;k<2;k++){
+      const w=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.014,0.014),mk(0x3b2416));
+      w.position.set(s*0.66,-0.05-k*0.07,0.3);w.rotation.z=s*(0.18-k*0.3);body.add(w);
+    }
+  });
+  const nose=new THREE.Mesh(new THREE.SphereGeometry(0.055,8,6),mk(0xff7a96));nose.position.set(0,-0.06,0.585);nose.scale.set(1.2,0.8,0.8);body.add(nose);
+  const hands=[];
+  const handG=new THREE.SphereGeometry(0.17,10,8);
+  for(let i=0;i<2;i++){const h=new THREE.Mesh(handG,mk(0xffffff));body.add(h);hands.push(h);}
+  const sh=new THREE.Mesh(new THREE.CircleGeometry(0.58,16),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.2,depthWrite:false}));
+  sh.rotation.x=-Math.PI/2;
+  return{root,body,hands,eyes,mats,headMat,shadow:sh,
+    setColor(c){headMat.color.setHex(c);},
+    setOpacity(o){mats.forEach(m=>{m.opacity=o;});}};
+}
+function animCat(c,t,sp,air,vy){
+  const walk=(sp>0.1&&!air)?1:0;
+  c.body.position.y=0.64+Math.sin(t*3.2)*0.035+walk*Math.abs(Math.sin(t*11))*0.07;
+  const sy=air?1+clamp(vy*0.014,-0.1,0.16):1-walk*0.02,sx=1/Math.sqrt(sy);
+  c.body.scale.set(sx,sy,sx);
+  const sw=Math.sin(t*11)*0.22*walk,up=air?0.28:0;
+  c.hands[0].position.set(-0.8,-0.16+up+Math.sin(t*3+1)*0.03,0.08+sw);
+  c.hands[1].position.set(0.8,-0.16+up+Math.sin(t*3)*0.03,0.08-sw);
+  const bl=(t%3.4)<0.12?0.1:1;
+  c.eyes[0].scale.y=c.eyes[1].scale.y=1.25*bl;
+}
+const catMe=makeCat(CAT_HEX.pink),catOther=makeCat(CAT_HEX.blue);
+playersGroup.add(catMe.root,catMe.shadow,catOther.root,catOther.shadow);
+catOther.root.visible=catOther.shadow.visible=false;
+
+/* ---------- ฉากเมนู: แมวสองตัวบนขนมปัง ---------- */
+const prevCats=[makeCat(CAT_HEX.pink),makeCat(CAT_HEX.blue)];
+(function(){
+  const base=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(7,1,6),M(0xc98340));body.position.y=-0.5;
+  const top=new THREE.Mesh(new THREE.BoxGeometry(7.2,0.26,6.2),M(0xffe2a6));top.position.y=-0.13;
+  base.add(body,top);menuGroup.add(base);
+  prevCats.forEach((c,i)=>{c.root.position.set(i?1.7:-1.7,0,0);menuGroup.add(c.root);});
+  const rnd=rng(7);
+  for(let i=0;i<14;i++)menuGroup.add(makeDecor(rnd,(i%2?-1:1)*(10+rnd()*14),-2+rnd()*10,-14+rnd()*16,true));
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(400,400),new THREE.MeshBasicMaterial({color:0xeafaf2}));
+  floor.rotation.x=-Math.PI/2;floor.position.y=-8;menuGroup.add(floor);
+})();
+
+/* ---------- ของตกแต่งลอยฟ้า (โดนัท คุกกี้ มาการอง) ---------- */
+function makeDecor(rnd,x,y,z,reg){
+  const g=new THREE.Group();const k=Math.floor(rnd()*3);
+  const pal=[0xff9cc2,0xffd666,0xa7e0ff,0xc7b6ff,0x9fe3c0];
+  const c=pal[Math.floor(rnd()*pal.length)];
+  if(k===0){
+    const d=new THREE.Mesh(flat(new THREE.TorusGeometry(1,0.45,6,10)),M(0xe3b36d));
+    const f=new THREE.Mesh(flat(new THREE.TorusGeometry(1,0.47,6,10)),M(c));f.scale.set(1,1,0.55);f.position.z=0.12;g.add(d,f);
+  }else if(k===1){
+    const ck=new THREE.Mesh(flat(new THREE.CylinderGeometry(1,1,0.36,9)),M(0xe8b878));ck.rotation.x=Math.PI/2;g.add(ck);
+    for(let i=0;i<5;i++){const ch=new THREE.Mesh(new THREE.SphereGeometry(0.14,5,4),M(0x5a3220));ch.position.set((rnd()-.5)*1.1,(rnd()-.5)*1.1,0.2);g.add(ch);}
+  }else{
+    const a=new THREE.Mesh(flat(new THREE.CylinderGeometry(0.9,0.8,0.32,10)),M(c));a.position.y=0.26;
+    const b=new THREE.Mesh(flat(new THREE.CylinderGeometry(0.8,0.9,0.32,10)),M(c));b.position.y=-0.26;
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(0.78,0.78,0.22,10),M(0xfffaf0));g.add(a,b,m);
+  }
+  const s=0.9+rnd()*1.4;g.scale.setScalar(s);g.position.set(x,y,z);
+  g.rotation.set(rnd()*3,rnd()*3,rnd()*3);
+  (reg?menuDecor:decorList).push({g,sx:(rnd()-.5)*0.4,sy:(rnd()-.5)*0.4});
+  return g;
+}
+
+/* ---------- 4. สร้างโลกจากข้อมูลด่าน ---------- */
+const PAL={bread:[0xc98340,0xffe2a6],toast:[0xb06a2b,0xeaa54d],biscuit:[0xd9a55b,0xf2cb86],choc:[0x4c2a18,0x7d4829],cream:[0xffb4cc,0xfffaf3],mint:[0x73d3aa,0xeafff5]};
+const IDC={r:0xff5a6e,b:0x4aa8ff,g:0x45cf8a,h:0xffc233};
+let RT=null;const levelGeoms=[];
+const geo=g=>{levelGeoms.push(g);return g;};
+function clearWorld(){
+  while(worldGroup.children.length)worldGroup.remove(worldGroup.children[0]);
+  levelGeoms.forEach(g=>g.dispose());levelGeoms.length=0;decorList.length=0;
+}
+function buildPlat(p){
+  const g=new THREE.Group(),pal=p.mv?PAL.mint:PAL[p.t];
+  const body=new THREE.Mesh(geo(new THREE.BoxGeometry(p.w,p.h,p.d)),M(pal[0]));body.position.y=-p.h/2;
+  const top=new THREE.Mesh(geo(new THREE.BoxGeometry(p.w+0.16,0.24,p.d+0.16)),M(pal[1]));top.position.y=-0.12;
+  g.add(body,top);
+  const rnd=rng(Math.floor(p.x*13+p.z*7+p.w*3)+99);
+  if(!p.mv&&p.t==='biscuit'){
+    const n=clamp(Math.round(p.w*p.d/3),2,9),cg=geo(new THREE.CylinderGeometry(0.14,0.14,0.02,8));
+    for(let i=0;i<n;i++){const c=new THREE.Mesh(cg,M(0x6b3a22));c.position.set((rnd()-.5)*(p.w-0.6),0.012,(rnd()-.5)*(p.d-0.6));g.add(c);}
+  }else if(!p.mv&&p.t==='choc'){
+    const lg=geo(new THREE.BoxGeometry(p.w,0.02,0.05));
+    for(let z=-p.d/2+1.6;z<p.d/2-0.4;z+=1.6){const l=new THREE.Mesh(lg,M(0x9a5f38));l.position.set(0,0.012,z);g.add(l);}
+  }else if(!p.mv&&p.t==='cream'){
+    const dg=geo(new THREE.SphereGeometry(0.16,6,4));
+    for(let i=0;i<4;i++){const d=new THREE.Mesh(dg,M(0xff8fb8));d.scale.y=0.5;d.position.set((rnd()-.5)*(p.w-0.5),0.02,(rnd()-.5)*(p.d-0.5));g.add(d);}
+  }
+  g.position.set(p.x,p.y,p.z);return g;
+}
+function buildSpike(h){
+  const g=new THREE.Group();
+  const nx=Math.max(1,Math.round(h.w/0.6)),nz=Math.max(1,Math.round(h.d/0.6));
+  const cone=geo(flat(new THREE.ConeGeometry(0.2,0.7,5)));cone.translate(0,0.4,0);
+  const im=new THREE.InstancedMesh(cone,M(0xff4f6d,0x2a0008),nx*nz);im.frustumCulled=false;
+  const dm=new THREE.Object3D();let i=0;
+  for(let a=0;a<nx;a++)for(let b=0;b<nz;b++){
+    dm.position.set(-h.w/2+(a+0.5)*h.w/nx,0,-h.d/2+(b+0.5)*h.d/nz);dm.rotation.y=(a*7+b*3)%5;dm.updateMatrix();im.setMatrixAt(i++,dm.matrix);
+  }
+  im.instanceMatrix.needsUpdate=true;
+  const plate=new THREE.Mesh(geo(new THREE.BoxGeometry(h.w,0.12,h.d)),M(0x8c2a3d));plate.position.y=0.06;
+  g.add(plate,im);return g;
+}
+function buildButter(h,rt){
+  const g=new THREE.Group();
+  const slab=new THREE.Mesh(geo(new THREE.BoxGeometry(h.w,h.h,h.d)),M(0xffc22e,0x7a3a00));slab.position.y=-h.h/2;g.add(slab);
+  const rnd=rng(Math.floor(h.x*7+h.z*3)+5),bg=geo(new THREE.SphereGeometry(1,7,5)),bub=[];
+  const n=clamp(Math.round(h.w*h.d/9),5,26);
+  for(let i=0;i<n;i++){
+    const b=new THREE.Mesh(bg,M(0xffe27a,0xaa5500));b.position.set((rnd()-.5)*(h.w-0.4),0,(rnd()-.5)*(h.d-0.4));
+    const r=0.1+rnd()*0.16;b.scale.set(r,r*0.7,r);g.add(b);bub.push({b,ph:rnd()*6,r});
+  }
+  rt.anims.push(t=>{for(const o of bub){const s=Math.abs(Math.sin(t*1.6+o.ph));o.b.position.y=0.02+s*0.1;o.b.scale.set(o.r*(0.7+s*0.5),o.r*0.7*(0.7+s*0.5),o.r*(0.7+s*0.5));}});
+  g.position.set(h.x,h.y,h.z);return g;
+}
+function buildPad(p){
+  const g=new THREE.Group();
+  const base=new THREE.Mesh(geo(new THREE.CylinderGeometry(0.88,0.95,0.14,16)),M(0x5b3b28));base.position.y=0.07;
+  const btnG=geo(new THREE.CylinderGeometry(0.7,0.74,0.22,16));btnG.translate(0,0.11,0);
+  const btn=new THREE.Mesh(btnG,M(IDC[p.id],0x222222));btn.position.y=0.14;
+  g.add(base,btn);g.position.set(p.x,p.y,p.z);return{g,btn};
+}
+function buildGate(d){
+  const g=new THREE.Group();
+  const mg=geo(new THREE.BoxGeometry(d.w,d.h,0.8));mg.translate(0,d.h/2,0);
+  const main=new THREE.Mesh(mg,M(IDC[d.id],0x331111));g.add(main);
+  const sg=geo(new THREE.BoxGeometry(d.w+0.06,0.14,0.9));
+  for(let i=1;i<4;i++){const s=new THREE.Mesh(sg,M(0xffffff));s.position.y=d.h*i/4;g.add(s);}
+  g.position.set(d.x,d.y,d.z);return g;
+}
+function buildKey(k){
+  const g=new THREE.Group(),gold=M(0xffd23f,0x5a3d00);
+  const ring=new THREE.Mesh(geo(new THREE.TorusGeometry(0.24,0.08,6,12)),gold);ring.position.y=0.32;
+  const shaft=new THREE.Mesh(geo(new THREE.CylinderGeometry(0.07,0.07,0.6,6)),gold);shaft.position.y=-0.12;
+  const t1=new THREE.Mesh(geo(new THREE.BoxGeometry(0.22,0.1,0.08)),gold);t1.position.set(0.12,-0.3,0);
+  const t2=new THREE.Mesh(geo(new THREE.BoxGeometry(0.16,0.1,0.08)),gold);t2.position.set(0.09,-0.14,0);
+  g.add(ring,shaft,t1,t2);g.scale.setScalar(1.25);g.position.set(k.x,k.y,k.z);return g;
+}
+function buildDoor(d,rt){
+  const g=new THREE.Group(),crust=M(0xb06a2b),plank=M(0xf4c27a),dark=M(0x9b5c24);
+  const panel=new THREE.Mesh(geo(new THREE.BoxGeometry(2.2,2.6,0.26)),plank);panel.position.y=1.3;
+  const arcG=geo(new THREE.CylinderGeometry(1.1,1.1,0.26,12,1,false,0,Math.PI));arcG.rotateX(Math.PI/2);
+  const arc=new THREE.Mesh(arcG,plank);arc.position.y=2.6;
+  const post=geo(new THREE.BoxGeometry(0.32,2.7,0.5));
+  const pl=new THREE.Mesh(post,crust),pr=new THREE.Mesh(post,crust);pl.position.set(-1.26,1.35,0);pr.position.set(1.26,1.35,0);
+  const lint=new THREE.Mesh(geo(new THREE.BoxGeometry(2.84,0.34,0.5)),crust);lint.position.y=3.66;
+  const archOut=geo(new THREE.CylinderGeometry(1.42,1.42,0.5,12,1,false,0,Math.PI));archOut.rotateX(Math.PI/2);
+  const ao=new THREE.Mesh(archOut,crust);ao.position.set(0,2.6,-0.02);
+  g.add(ao,arc,panel,pl,pr);
+  const lg=geo(new THREE.BoxGeometry(0.06,2.6,0.03));
+  [-0.55,0,0.55].forEach(x=>{const l=new THREE.Mesh(lg,dark);l.position.set(x,1.3,0.15);g.add(l);});
+  const knob=new THREE.Mesh(geo(new THREE.SphereGeometry(0.11,8,6)),M(0xffd23f,0x5a3d00));knob.position.set(0.7,1.2,0.2);g.add(knob);
+  const lock=new THREE.Group();
+  const lb=new THREE.Mesh(geo(new THREE.BoxGeometry(0.6,0.5,0.2)),M(0xffd23f,0x5a3d00));lb.position.y=0;
+  const ls=new THREE.Mesh(geo(new THREE.TorusGeometry(0.2,0.06,6,10,Math.PI)),M(0xd9a400));ls.position.y=0.25;
+  lock.add(lb,ls);lock.position.set(0,1.5,0.28);g.add(lock);
+  g.position.set(d.x,d.y,d.z);
+  return{g,lock,panel,mat:plank};
+}
+function buildWorld(L,idx){
+  clearWorld();
+  const rt={L,idx,solids:[],gates:[],hz:[],pads:[],keys:[],door:null,anims:[],keyTotal:L.keys.length};
+  for(const p of L.plats){
+    const s=makeSolid(p);s.mesh=buildPlat(p);worldGroup.add(s.mesh);placeSolid(s,0);rt.solids.push(s);
+  }
+  for(const d of L.gates){
+    const mesh=buildGate(d);worldGroup.add(mesh);
+    rt.gates.push({def:d,mesh,open:0,solid:{minx:d.x-d.w/2,maxx:d.x+d.w/2,miny:d.y,maxy:d.y+d.h,minz:d.z-0.5,maxz:d.z+0.5}});
+  }
+  for(const h of L.hz){
+    const mesh=h.k==='spike'?buildSpike(h):buildButter(h,rt);worldGroup.add(mesh);
+    rt.hz.push({def:h,mesh,minx:0,maxx:0,miny:0,maxy:0,minz:0,maxz:0,on:true,vis:1});
+  }
+  for(const p of L.pads){
+    const o=buildPad(p);worldGroup.add(o.g);rt.pads.push({def:p,btn:o.btn,timer:0,active:false,vis:0});
+  }
+  for(const k of L.keys){const m=buildKey(k);worldGroup.add(m);rt.keys.push({def:k,mesh:m,got:false});}
+  if(L.door){const d=buildDoor(L.door,rt);worldGroup.add(d.g);rt.door=Object.assign({def:L.door},d);}
+  /* ของตกแต่งลอยรอบด่าน */
+  let minZ=0,maxZ=0,minX=0,maxX=0;
+  L.plats.forEach(p=>{minZ=Math.min(minZ,p.z-p.d);maxZ=Math.max(maxZ,p.z+p.d);minX=Math.min(minX,p.x-p.w);maxX=Math.max(maxX,p.x+p.w);});
+  const rnd=rng(idx+31);
+  for(let i=0;i<26;i++){
+    const side=rnd()<0.5?-1:1;
+    const x=side>0?maxX+8+rnd()*22:minX-8-rnd()*22;
+    worldGroup.add(makeDecor(rnd,x,L.minY+2+rnd()*16,minZ-12+rnd()*(maxZ-minZ+24)));
+  }
+  const floor=new THREE.Mesh(geo(new THREE.PlaneGeometry(600,600)),new THREE.MeshBasicMaterial({color:0xeafaf2}));
+  floor.rotation.x=-Math.PI/2;floor.position.y=L.minY-8;worldGroup.add(floor);
+  rt.killY=L.minY-10;
+  return rt;
+}
+function updateHazard(h,t){
+  const d=h.def;let x=d.x,z=d.z,y=d.y;
+  if(d.mv){const k=mvK(d.mv,t);x+=d.mv.dx*k;y+=d.mv.dy*k;z+=d.mv.dz*k;}
+  h.minx=x-d.w/2;h.maxx=x+d.w/2;h.minz=z-d.d/2;h.maxz=z+d.d/2;
+  if(d.k==='butter'){h.miny=y-d.h;h.maxy=y;}else{h.miny=y;h.maxy=y+d.h;}
+  let target=1;h.on=true;
+  if(d.bl){
+    const cyc=d.bl.on+d.bl.off,ph=(t+d.bl.ph)%cyc;
+    h.on=ph<d.bl.on;
+    target=h.on?1:((ph>cyc-0.5)?((Math.floor(t*10)%2)?0.45:0.1):0.1);
+  }
+  h.vis=lerp(h.vis,target,0.35);
+  h.mesh.position.set(x,y,z);
+  if(d.k==='spike')h.mesh.scale.y=Math.max(0.05,h.vis);
+}
+
+/* ---------- 5. เครือข่าย PeerJS ---------- */
+const ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'}]};
+const NET={peer:null,conn:null,role:null,code:'',lastRx:0,joinTimer:0};
+let solo=false;
+const colors={host:null,guest:null};
+function genCode(){const a='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<5;i++)s+=a[Math.floor(Math.random()*a.length)];return s;}
+function send(o){if(NET.conn&&NET.conn.open){try{NET.conn.send(o);}catch(e){}}}
+function hostRoom(){
+  if(typeof Peer==='undefined'){$('#host-status').textContent='โหลด PeerJS ไม่สำเร็จ เช็กอินเทอร์เน็ตแล้วลองใหม่';return;}
+  NET.role='host';solo=false;showScreen('host');
+  $('#room-code').textContent='·····';$('#host-status').textContent='กำลังสร้างห้อง…';
+  $('#btn-copy').disabled=$('#btn-share').disabled=true;
+  tryCreate(0);
+}
+function tryCreate(n){
+  const code=genCode();
+  const peer=new Peer('bkcat-'+code,{debug:0,config:ICE});
+  peer.on('open',()=>{
+    NET.peer=peer;NET.code=code;
+    $('#room-code').textContent=code;$('#host-status').textContent='ส่งรหัสให้แฟน แล้วรอเขาเข้าห้อง…';
+    $('#btn-copy').disabled=$('#btn-share').disabled=false;
+  });
+  peer.on('connection',onIncoming);
+  peer.on('disconnected',()=>{try{peer.reconnect();}catch(e){}});
+  peer.on('error',err=>{
+    if(err.type==='unavailable-id'&&n<6){try{peer.destroy();}catch(e){}tryCreate(n+1);return;}
+    $('#host-status').textContent=(err.type==='network'||err.type==='server-error'||err.type==='socket-error')?'ติดต่อเซิร์ฟเวอร์ไม่ได้ เช็กอินเทอร์เน็ตแล้วลองใหม่':'สร้างห้องไม่สำเร็จ ('+err.type+')';
+  });
+}
+function onIncoming(c){
+  if(NET.conn&&NET.conn.open){try{c.close();}catch(e){}return;}      // รับแค่ 2 คน
+  NET.conn=c;wireConn(c);
+  c.on('open',()=>{
+    NET.lastRx=performance.now();Snd.join();
+    if(state==='game'&&!colors.guest)colors.guest=colors.host==='pink'?'blue':'pink';
+    send({t:'sync',colors,started:state==='game',lv:lv});
+    if(state==='game'){hideModal('m-dc');}
+    else{showScreen('lobby');}
+    renderLobby();updateHud();
+  });
+}
+function joinRoom(code){
+  if(typeof Peer==='undefined'){$('#join-err').textContent='โหลด PeerJS ไม่สำเร็จ เช็กอินเทอร์เน็ตแล้วลองใหม่';return;}
+  NET.role='guest';solo=false;NET.code=code;
+  $('#join-err').textContent='กำลังเชื่อมต่อ…';$('#btn-connect').disabled=true;
+  closeNet();
+  const peer=new Peer({debug:0,config:ICE});NET.peer=peer;
+  const fail=msg=>{$('#join-err').textContent=msg;$('#btn-connect').disabled=false;clearTimeout(NET.joinTimer);
+    if(state==='game'||!$('#m-dc').classList.contains('on')&&state==='game')showDisconnected();};
+  peer.on('open',()=>{
+    const c=peer.connect('bkcat-'+code,{reliable:true});NET.conn=c;wireConn(c);
+    c.on('open',()=>{
+      clearTimeout(NET.joinTimer);NET.lastRx=performance.now();$('#btn-connect').disabled=false;$('#join-err').textContent='';
+      Snd.join();hideModal('m-dc');
+      if(state!=='game'){showScreen('lobby');}
+      renderLobby();
+    });
+    NET.joinTimer=setTimeout(()=>{if(!c.open){fail('เชื่อมต่อไม่ได้ ลองเช็กรหัส หรือสลับ Wi-Fi/เน็ตมือถือ');try{c.close();}catch(e){}}},15000);
+  });
+  peer.on('error',err=>{
+    if(err.type==='peer-unavailable')fail('ไม่พบห้องนี้ เช็กรหัสอีกครั้งนะ');
+    else if(err.type==='network'||err.type==='server-error'||err.type==='socket-error')fail('ติดต่อเซิร์ฟเวอร์ไม่ได้ เช็กอินเทอร์เน็ต');
+    else fail('เชื่อมต่อไม่สำเร็จ ('+err.type+')');
+  });
+}
+function wireConn(c){
+  c.on('data',onData);
+  c.on('close',()=>{if(NET.conn===c)onConnLost();});
+  c.on('error',()=>{if(NET.conn===c)onConnLost();});
+  const watch=setInterval(()=>{
+    const pc=c.peerConnection;
+    if(!pc){return;}
+    clearInterval(watch);
+    pc.addEventListener('iceconnectionstatechange',()=>{
+      if((pc.iceConnectionState==='failed'||pc.iceConnectionState==='closed')&&NET.conn===c)onConnLost();
+    });
+  },300);
+}
+function onConnLost(){
+  const c=NET.conn;NET.conn=null;try{c&&c.close();}catch(e){}
+  peerState.has=false;catOther.root.visible=catOther.shadow.visible=false;
+  if(NET.role==='host')colors.guest=null;
+  if(state==='game')showDisconnected();
+  else if(state==='lobby'){
+    if(NET.role==='host'){showScreen('host');$('#host-status').textContent='แฟนหลุดออกไป รอเขากลับมา…';}
+    else{leaveToTitle();$('#join-err').textContent='โฮสต์ออกจากห้องแล้ว';showScreen('join');}
+  }
+  updateHud();
+}
+function closeNet(){
+  clearTimeout(NET.joinTimer);
+  try{NET.conn&&NET.conn.close();}catch(e){}
+  try{NET.peer&&NET.peer.destroy();}catch(e){}
+  NET.conn=null;NET.peer=null;
+}
+function broadcastColors(){send({t:'colors',colors});}
+function onData(m){
+  if(!m||!m.t)return;
+  NET.lastRx=performance.now();
+  switch(m.t){
+    case 's':{
+      const p=m.p;if(!p)break;
+      if(!peerState.has){peerState.has=true;peerState.x=p[0];peerState.y=p[1];peerState.z=p[2];}
+      else if(Math.hypot(p[0]-peerState.tx,p[2]-peerState.tz)>6||Math.abs(p[1]-peerState.ty)>6){peerState.x=p[0];peerState.y=p[1];peerState.z=p[2];}
+      peerState.tx=p[0];peerState.ty=p[1];peerState.tz=p[2];peerState.yaw=p[3];peerState.sp=p[4];peerState.air=p[5];peerState.atDoor=!!p[6];peerState.vy=p[7];
+      if(state==='game'){catOther.root.visible=catOther.shadow.visible=true;}
+      break;}
+    case 'time':
+      if(state!=='game')break;
+      if(m.lv!==lv){loadLevel(m.lv);break;}
+      {const err=m.lt-lt;if(Math.abs(err)>1)lt=m.lt;else lt+=err*0.1;}
+      break;
+    case 'sync':
+      Object.assign(colors,m.colors||{});
+      if(m.started&&state!=='game'){startGame(m.lv);}
+      else renderLobby();
+      break;
+    case 'colors':Object.assign(colors,m.colors||{});renderLobby();break;
+    case 'pick':
+      if(NET.role!=='host')break;
+      if(m.c&&colors.host===m.c){broadcastColors();break;}
+      colors.guest=m.c||null;broadcastColors();renderLobby();break;
+    case 'start':colors.guest=colors.guest;startGame(m.lv);break;
+    case 'key':
+      if(RT&&RT.keys[m.i]&&!RT.keys[m.i].got){RT.keys[m.i].got=true;RT.keys[m.i].mesh.visible=false;keysGot++;updateHud();Snd.key();}
+      break;
+    case 'win':showWin(m.i);break;
+    case 'level':hideModal('m-win');loadLevel(m.i);break;
+    case 'end':hideModal('m-win');showEnd();break;
+    case 'again':hideModal('m-end');loadLevel(0);break;
+  }
+}
+
+/* ---------- 6. อินพุต ---------- */
+const input={mx:0,my:0,jumpHeld:false};
+const keys={};
+const cam={yaw:0,pitch:0.55,dist:9.5,x:0,y:0,z:0};
+let menuOpen=false;
+const joyEl=$('#joy'),thumb=$('#joy-thumb'),touchEl=$('#touch'),jumpBtn=$('#btn-jump');
+const joy={id:-1,ox:0,oy:0,x:0,y:0},camPtr=new Map();
+const JR=52;
+touchEl.addEventListener('pointerdown',e=>{
+  if(state!=='game'||menuOpen)return;
+  Snd.ensure();
+  try{touchEl.setPointerCapture(e.pointerId);}catch(_){}
+  if(e.pointerType!=='mouse'&&e.clientX<window.innerWidth*0.5&&joy.id<0){
+    joy.id=e.pointerId;joy.ox=e.clientX;joy.oy=e.clientY;joy.x=joy.y=0;
+    joyEl.classList.add('active');joyEl.style.left=(e.clientX-66)+'px';joyEl.style.top=(e.clientY-66)+'px';joyEl.style.bottom='auto';
+  }else camPtr.set(e.pointerId,{x:e.clientX,y:e.clientY,mouse:e.pointerType==='mouse'});
+});
+touchEl.addEventListener('pointermove',e=>{
+  if(e.pointerId===joy.id){
+    let dx=e.clientX-joy.ox,dy=e.clientY-joy.oy;const l=Math.hypot(dx,dy);
+    if(l>JR){dx*=JR/l;dy*=JR/l;}
+    joy.x=dx/JR;joy.y=-dy/JR;
+    thumb.style.transform='translate('+dx+'px,'+dy+'px)';
+  }else if(camPtr.has(e.pointerId)){
+    const p=camPtr.get(e.pointerId),k=p.mouse?0.0055:0.0075;
+    cam.yaw-=(e.clientX-p.x)*k;cam.pitch=clamp(cam.pitch+(e.clientY-p.y)*k,0.12,1.25);
+    p.x=e.clientX;p.y=e.clientY;
+  }
+});
+function endPtr(e){
+  if(e.pointerId===joy.id){joy.id=-1;joy.x=joy.y=0;thumb.style.transform='';joyEl.classList.remove('active');joyEl.style.left=joyEl.style.top=joyEl.style.bottom='';}
+  camPtr.delete(e.pointerId);
+}
+touchEl.addEventListener('pointerup',endPtr);touchEl.addEventListener('pointercancel',endPtr);
+touchEl.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('contextmenu',e=>e.preventDefault());
+jumpBtn.addEventListener('pointerdown',e=>{
+  e.preventDefault();e.stopPropagation();Snd.ensure();
+  try{jumpBtn.setPointerCapture(e.pointerId);}catch(_){}
+  input.jumpHeld=true;me.buffer=CFG.BUFFER;jumpBtn.classList.add('down');
+});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>jumpBtn.addEventListener(ev,()=>{input.jumpHeld=false;jumpBtn.classList.remove('down');}));
+window.addEventListener('keydown',e=>{
+  if(e.target&&e.target.tagName==='INPUT')return;
+  keys[e.code]=true;
+  if(e.code==='Space'){e.preventDefault();if(!e.repeat&&state==='game'){Snd.ensure();me.buffer=CFG.BUFFER;}}
+  if(e.code.startsWith('Arrow'))e.preventDefault();
+});
+window.addEventListener('keyup',e=>{keys[e.code]=false;});
+window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false;input.jumpHeld=false;});
+function readInput(){
+  if(menuOpen||state!=='game'){input.mx=input.my=0;return;}
+  let mx=0,my=0;
+  if(keys.KeyA||keys.ArrowLeft)mx-=1;if(keys.KeyD||keys.ArrowRight)mx+=1;
+  if(keys.KeyW||keys.ArrowUp)my+=1;if(keys.KeyS||keys.ArrowDown)my-=1;
+  if(keys.KeyQ)cam.yaw+=0.04;if(keys.KeyE)cam.yaw-=0.04;
+  const jl=Math.hypot(joy.x,joy.y);
+  if(jl>0.14){const s=(jl-0.14)/0.86/jl;mx=joy.x*s;my=joy.y*s;}
+  const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l;}
+  input.mx=mx;input.my=my;
+}
+
+/* ---------- 7. UI และ state machine ---------- */
+let state='menu';            // menu | game
+let lv=0,lt=0,keysGot=0,doorTimer=0,winState=false,startLevel=0,hintTimer=0;
+const me={x:0,y:0,z:0,vx:0,vy:0,vz:0,yaw:0,grounded:false,stand:null,coyote:0,buffer:0,atDoor:false,inv:0,sp:0,doorScale:1};
+const peerState={has:false,x:0,y:0,z:0,tx:0,ty:0,tz:0,yaw:0,sp:0,air:0,vy:0,atDoor:false,doorScale:1};
+const screens={title:$('#sc-title'),host:$('#sc-host'),join:$('#sc-join'),lobby:$('#sc-lobby')};
+function showScreen(n){
+  for(const k in screens)screens[k].classList.toggle('on',k===n);
+  $('#hud').classList.toggle('on',n==='game');
+  $('#touch').style.display=n==='game'?'block':'none';
+  menuGroup.visible=n!=='game';worldGroup.visible=n==='game';playersGroup.visible=n==='game';
+  scene.fog.far=n==='game'?140:400;
+  if(n==='lobby')renderLobby();
+  if(n==='title')renderPreviews(true);
+  screenName=n;
+}
+let screenName='title';
+function showModal(id){$('#'+id).classList.add('on');}
+function hideModal(id){$('#'+id).classList.remove('on');}
+function mineColor(){return colors[NET.role==='guest'?'guest':'host'];}
+function otherColor(){return colors[NET.role==='guest'?'host':'guest'];}
+function renderPreviews(all){
+  ['pink','blue'].forEach((c,i)=>{
+    const taken=all||colors.host===c||colors.guest===c;
+    prevCats[i].setOpacity(taken?1:0.32);
+  });
+}
+function renderLobby(){
+  const mine=mineColor(),other=otherColor();
+  $$('.cat-card').forEach(card=>{
+    const c=card.dataset.c;
+    card.classList.toggle('mine',mine===c);card.classList.toggle('taken',other===c);
+    card.setAttribute('aria-pressed',mine===c?'true':'false');
+    card.querySelector('small').textContent=mine===c?'ของเรา':other===c?'แฟนเลือกแล้ว':'แตะเพื่อเลือก';
+  });
+  const ready=solo?!!mine:(!!colors.host&&!!colors.guest);
+  const isHost=solo||NET.role==='host';
+  $('#lobby-conn').textContent=solo?'โหมดซ้อมคนเดียว':'เชื่อมต่อกับแฟนแล้ว';
+  $('#lobby-status').textContent=solo?(mine?'พร้อมซ้อมแล้ว':'เลือกแมวของคุณ'):(ready?'พร้อมลุยแล้ว!':(mine?'รอแฟนเลือกแมว…':'แตะเลือกแมวที่ชอบ'));
+  $('#lobby-step').style.display=isHost?'flex':'none';
+  $('#btn-start').style.display=isHost?'block':'none';
+  $('#lobby-wait').style.display=isHost?'none':'block';
+  $('#btn-start').disabled=!ready;
+  $('#lv-num').textContent=(startLevel+1);
+  $('#lobby-wait').textContent=ready?'รอโฮสต์กดเริ่มเกม':'เลือกแมวให้ครบก่อนนะ';
+  const pickedP=colors.host==='pink'||colors.guest==='pink',pickedB=colors.host==='blue'||colors.guest==='blue';
+  prevCats[0].setOpacity(pickedP?1:0.32);prevCats[1].setOpacity(pickedB?1:0.32);
+}
+function pickCat(c){
+  Snd.ensure();
+  if(solo||NET.role==='host'){
+    if(colors.guest===c)return;
+    colors.host=colors.host===c?null:c;broadcastColors();
+  }else{
+    if(colors.host===c)return;
+    const v=colors.guest===c?null:c;colors.guest=v;send({t:'pick',c:v});
+  }
+  renderLobby();
+}
+function savedLevel(){try{return clamp(parseInt(localStorage.getItem('bc_lv')||'0',10)||0,0,LEVELS.length-1);}catch(e){return 0;}}
+function saveLevel(i){try{if(i>savedLevel())localStorage.setItem('bc_lv',String(i));}catch(e){}}
+function startGame(l){
+  state='game';lv=l;hideModal('m-end');hideModal('m-win');hideModal('m-dc');menuOpen=false;hideModal('m-menu');
+  showScreen('game');
+  const mc=solo?(colors.host||'pink'):(mineColor()||'pink');
+  const oc=solo?null:(otherColor()||(mc==='pink'?'blue':'pink'));
+  catMe.setColor(CAT_HEX[mc]);if(oc)catOther.setColor(CAT_HEX[oc]);
+  catMe.setOpacity(1);catOther.setOpacity(1);
+  loadLevel(l);
+  requestWake();
+}
+function loadLevel(i){
+  lv=clamp(i,0,LEVELS.length-1);
+  const L=LEVELS[lv];RT=buildWorld(L,lv);
+  lt=0;keysGot=0;doorTimer=0;winState=false;me.atDoor=false;me.doorScale=1;
+  hideModal('m-win');
+  respawn(true);
+  cam.yaw=0;cam.pitch=0.55;
+  cam.x=me.x;cam.y=me.y+1.2;cam.z=me.z;
+  peerState.has=false;catOther.root.visible=catOther.shadow.visible=false;
+  updateHud();showHint(L.hint,5200);saveLevel(lv);
+}
+function respawn(silent){
+  const sp=RT.L.spawn[NET.role==='guest'&&!solo?1:0];
+  me.x=sp[0];me.y=sp[1]+0.02;me.z=sp[2];me.vx=me.vy=me.vz=0;me.grounded=false;me.stand=null;me.inv=silent?0:0.9;me.yaw=0;
+  if(!silent)Snd.die();
+}
+function updateHud(){
+  if(!RT)return;
+  $('#h-lv').textContent='ด่าน '+(lv+1)+'/'+LEVELS.length;
+  $('#h-name').textContent=RT.L.name;
+  $('#h-keys').style.display=RT.keyTotal?'flex':'none';
+  $('#h-keyn').textContent=keysGot+'/'+RT.keyTotal;
+  const dot=$('#h-dot'),txt=$('#h-net');
+  if(solo){dot.className='dot';txt.textContent='ซ้อมคนเดียว';}
+  else if(!NET.conn||!NET.conn.open){dot.className='dot off';txt.textContent='ขาดการเชื่อมต่อ';}
+  else if(performance.now()-NET.lastRx>2500){dot.className='dot weak';txt.textContent='สัญญาณช้า';}
+  else{dot.className='dot';txt.textContent='ออนไลน์';}
+}
+function showHint(t,ms){
+  const h=$('#hint');h.textContent=t;h.classList.add('on');
+  clearTimeout(hintTimer);hintTimer=setTimeout(()=>h.classList.remove('on'),ms||4000);
+}
+function showWin(i){
+  if(winState&&$('#m-win').classList.contains('on'))return;
+  winState=true;Snd.win();
+  $('#win-title').textContent='ผ่านด่าน '+(i+1)+' แล้ว!';
+  $('#win-sub').textContent=i<LEVELS.length-1?'เก่งมากทั้งคู่ กำลังไปด่านต่อไป…':'ถึงด่านสุดท้ายแล้ว!';
+  showModal('m-win');
+}
+function doWin(){
+  if(winState)return;
+  showWin(lv);send({t:'win',i:lv});
+  const done=lv;
+  setTimeout(()=>{
+    if(state!=='game'||lv!==done)return;
+    if(done<LEVELS.length-1){hideModal('m-win');loadLevel(done+1);send({t:'level',i:done+1});}
+    else{hideModal('m-win');send({t:'end'});showEnd();}
+  },2400);
+}
+function showEnd(){
+  const isHost=solo||NET.role==='host';
+  $('#end-again').style.display=isHost?'block':'none';$('#end-wait').style.display=isHost?'none':'block';
+  showModal('m-end');
+}
+function showDisconnected(){
+  const host=NET.role==='host'&&!solo;
+  $('#dc-title').textContent=host?'แฟนหลุดจากห้อง':'หลุดจากห้อง';
+  $('#dc-sub').textContent=host?('รอแฟนกลับมาด้วยรหัสเดิม '+NET.code+' เกมจะต่อให้อัตโนมัติ'):'เช็กอินเทอร์เน็ต แล้วกดเชื่อมต่อใหม่';
+  $('#dc-retry').style.display=host?'none':'block';
+  showModal('m-dc');
+}
+function leaveToTitle(){
+  closeNet();
+  state='menu';solo=false;NET.role=null;colors.host=colors.guest=null;RT=null;
+  peerState.has=false;winState=false;menuOpen=false;
+  ['m-menu','m-win','m-end','m-dc'].forEach(hideModal);
+  joy.id=-1;joy.x=joy.y=0;
+  releaseWake();showScreen('title');
+}
+let wakeLock=null;
+async function requestWake(){try{if('wakeLock' in navigator)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}}
+function releaseWake(){try{wakeLock&&wakeLock.release();}catch(e){}wakeLock=null;}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&state==='game')requestWake();});
+
+/* ปุ่มต่างๆ */
+$('#btn-host').onclick=()=>{Snd.ensure();hostRoom();};
+$('#btn-join').onclick=()=>{Snd.ensure();$('#join-err').textContent='';showScreen('join');setTimeout(()=>$('#join-code').focus(),50);};
+$('#btn-solo').onclick=()=>{
+  Snd.ensure();solo=true;NET.role='host';colors.host=null;colors.guest=null;startLevel=savedLevel();
+  showScreen('lobby');
+};
+$('#host-back').onclick=leaveToTitle;
+$('#join-back').onclick=leaveToTitle;
+$('#lobby-leave').onclick=leaveToTitle;
+$('#btn-copy').onclick=async()=>{
+  try{await navigator.clipboard.writeText(NET.code);}catch(e){const t=document.createElement('textarea');t.value=NET.code;document.body.appendChild(t);t.select();try{document.execCommand('copy');}catch(_){}t.remove();}
+  const b=$('#btn-copy');b.textContent='คัดลอกแล้ว';setTimeout(()=>b.textContent='คัดลอกรหัส',1400);
+};
+$('#btn-share').onclick=async()=>{
+  const url=location.href.split('#')[0].split('?')[0]+'?room='+NET.code;
+  const text='มาเล่น Bread Cats ด้วยกัน! รหัสห้อง '+NET.code;
+  if(navigator.share){try{await navigator.share({title:'Bread Cats',text,url});return;}catch(e){if(e&&e.name==='AbortError')return;}}
+  try{await navigator.clipboard.writeText(text+' '+url);}catch(e){}
+  const b=$('#btn-share');b.textContent='คัดลอกลิงก์แล้ว';setTimeout(()=>b.textContent='ส่งให้แฟน',1400);
+};
+const joinInput=$('#join-code');
+joinInput.addEventListener('input',()=>{joinInput.value=joinInput.value.toUpperCase().replace(/[^A-Z0-9]/g,'');$('#join-err').textContent='';});
+joinInput.addEventListener('keydown',e=>{if(e.key==='Enter')$('#btn-connect').click();});
+$('#btn-connect').onclick=()=>{
+  const c=joinInput.value.trim().toUpperCase();
+  if(c.length<5){$('#join-err').textContent='รหัสห้องมี 5 ตัวอักษรนะ';return;}
+  Snd.ensure();joinRoom(c);
+};
+$$('.cat-card').forEach(b=>b.onclick=()=>pickCat(b.dataset.c));
+$('#lv-minus').onclick=()=>{startLevel=Math.max(0,startLevel-1);renderLobby();};
+$('#lv-plus').onclick=()=>{startLevel=Math.min(LEVELS.length-1,startLevel+1);renderLobby();};
+$('#btn-start').onclick=()=>{
+  Snd.ensure();
+  if(!solo)send({t:'start',lv:startLevel});
+  startGame(startLevel);
+};
+$('#btn-menu').onclick=()=>{
+  menuOpen=true;joy.id=-1;joy.x=joy.y=0;thumb.style.transform='';joyEl.classList.remove('active');
+  const host=solo||NET.role==='host';
+  $('#mn-levels').style.display=host?'block':'none';
+  $$('#lvgrid button').forEach((b,i)=>b.classList.toggle('cur',i===lv));
+  $('#mn-sound').textContent='เสียง: '+(Snd.muted?'ปิด':'เปิด');
+  $('#mn-full').style.display=document.fullscreenEnabled?'block':'none';
+  showModal('m-menu');
+};
+$('#mn-close').onclick=()=>{menuOpen=false;hideModal('m-menu');};
+$('#mn-respawn').onclick=()=>{menuOpen=false;hideModal('m-menu');respawn();};
+$('#mn-sound').onclick=()=>{Snd.muted=!Snd.muted;$('#mn-sound').textContent='เสียง: '+(Snd.muted?'ปิด':'เปิด');};
+$('#mn-full').onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}catch(e){}};
+$('#mn-leave').onclick=leaveToTitle;
+$('#dc-leave').onclick=leaveToTitle;
+$('#end-leave').onclick=leaveToTitle;
+$('#dc-retry').onclick=()=>{hideModal('m-dc');showScreen('game');joinRoom(NET.code);};
+$('#end-again').onclick=()=>{hideModal('m-end');send({t:'again'});loadLevel(0);};
+(function(){
+  const g=$('#lvgrid');
+  for(let i=0;i<LEVELS.length;i++){
+    const b=document.createElement('button');b.textContent=i+1;
+    b.onclick=()=>{menuOpen=false;hideModal('m-menu');send({t:'level',i});loadLevel(i);};
+    g.appendChild(b);
+  }
+})();
+(function(){
+  const q=new URLSearchParams(location.search).get('room');
+  if(q){joinInput.value=q.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);showScreen('join');}
+  startLevel=savedLevel();
+})();
+
+/* ---------- 8. ลูปเกมหลัก ---------- */
+function onPad(px,py,pz,p){const dx=px-p.x,dz=pz-p.z;return dx*dx+dz*dz<0.75&&py>p.y-0.3&&py<p.y+0.6;}
+function groundBelow(x,y,z){
+  let best=null;
+  for(const s of RT.solids){
+    if(x>s.minx-0.3&&x<s.maxx+0.3&&z>s.minz-0.3&&z<s.maxz+0.3&&s.maxy<=y+0.25&&(best===null||s.maxy>best))best=s.maxy;
+  }
+  return best;
+}
+let netAcc=0,timeAcc=0,hudAcc=0,gtime=0;
+function updateGame(dt){
+  const L=RT.L;
+  lt+=dt;
+  for(const s of RT.solids){if(s.mv){placeSolid(s,lt);s.mesh.position.set(s.cx,s.cy,s.cz);}}
+  for(const h of RT.hz)updateHazard(h,lt);
+  /* สวิตช์ + ประตูกั้น */
+  for(const p of RT.pads){
+    const on=onPad(me.x,me.y,me.z,p.def)||(peerState.has&&onPad(peerState.x,peerState.y,peerState.z,p.def));
+    if(on)p.timer=p.def.hold;else p.timer=Math.max(0,p.timer-dt);
+    const act=on||p.timer>0;
+    if(act!==p.active){p.active=act;Snd.pad(act);}
+    p.vis=lerp(p.vis,act?1:0,0.3);p.btn.scale.y=1-0.7*p.vis;
+  }
+  for(const g of RT.gates){
+    const ps=RT.pads.filter(p=>p.def.id===g.def.id);
+    const open=g.def.all?(ps.length>0&&ps.every(p=>p.active)):ps.some(p=>p.active);
+    g.open=clamp(g.open+(open?1:-1)*dt*3.2,0,1);
+    g.mesh.scale.y=Math.max(0.02,1-g.open);g.mesh.visible=g.open<0.97;
+  }
+  const solids=RT.solids.slice();
+  for(const g of RT.gates)if(g.open<0.5)solids.push(g.solid);
+  /* คำนวณการเคลื่อนไหว */
+  readInput();
+  if(me.stand&&me.stand.mv){me.x+=me.stand.dx;me.y+=me.stand.dy;me.z+=me.stand.dz;}
+  const fx=-Math.sin(cam.yaw),fz=-Math.cos(cam.yaw),rx=Math.cos(cam.yaw),rz=-Math.sin(cam.yaw);
+  let wx=rx*input.mx+fx*input.my,wz=rz*input.mx+fz*input.my;
+  const mag=Math.min(1,Math.hypot(wx,wz));
+  me.sp=mag;
+  if(mag>0.05){
+    me.yaw=angLerp(me.yaw,Math.atan2(wx,wz),1-Math.exp(-dt*16));
+  }
+  const n=Math.max(1,Math.ceil(dt/0.0167)),sdt=dt/n;
+  me.buffer=Math.max(0,me.buffer-dt);
+  for(let i=0;i<n;i++){
+    const tx=mag>0.05?wx/Math.hypot(wx,wz)*mag*CFG.SPEED:0,tz=mag>0.05?wz/Math.hypot(wx,wz)*mag*CFG.SPEED:0;
+    const acc=(me.grounded?70:38)*sdt;
+    me.vx+=clamp(tx-me.vx,-acc,acc);me.vz+=clamp(tz-me.vz,-acc,acc);
+    if(me.grounded)me.coyote=CFG.COYOTE;else me.coyote-=sdt;
+    if(me.buffer>0&&me.coyote>0){me.vy=CFG.JUMP;me.grounded=false;me.coyote=0;me.buffer=0;Snd.jump();}
+    if(!input.jumpHeld&&!keys.Space&&me.vy>4)me.vy-=40*sdt;   // ปล่อยปุ่ม = กระโดดเตี้ยลง
+    me.vy=Math.max(CFG.TERM,me.vy-CFG.GRAV*sdt);
+    moveBody(me,solids,sdt);
+  }
+  /* อันตราย */
+  if(me.inv>0)me.inv-=dt;
+  else{
+    let dead=me.y<RT.killY;
+    if(!dead){
+      for(const h of RT.hz){
+        if(!h.on||h.vis<0.5)continue;
+        if(me.x+CFG.R-0.12>h.minx&&me.x-CFG.R+0.12<h.maxx&&me.z+CFG.R-0.12>h.minz&&me.z-CFG.R+0.12<h.maxz&&me.y+CFG.H-0.1>h.miny&&me.y+0.05<h.maxy){dead=true;break;}
+      }
+    }
+    if(dead)respawn();
+  }
+  /* เก็บกุญแจ */
+  RT.keys.forEach((k,i)=>{
+    if(k.got)return;
+    const dx=me.x-k.def.x,dy=me.y+0.6-k.def.y,dz=me.z-k.def.z;
+    if(dx*dx+dy*dy+dz*dz<1.15){k.got=true;k.mesh.visible=false;keysGot++;send({t:'key',i});Snd.key();updateHud();showHint('ได้กุญแจแล้ว!',1600);}
+  });
+  /* ประตู */
+  const D=RT.door,unlocked=keysGot>=RT.keyTotal;
+  if(D){
+    D.lock.visible=!unlocked;
+    D.mat.emissive.setHex(unlocked?0x553300:0x000000);
+    const d=D.def;
+    me.atDoor=unlocked&&Math.abs(me.x-d.x)<1.1&&Math.abs(me.z-d.z)<1.1&&me.y>d.y-0.4&&me.y<d.y+1.5;
+    if(unlocked&&!winState&&me.atDoor&&(solo||(peerState.has&&peerState.atDoor))){
+      doorTimer+=dt;
+      if(doorTimer>0.5&&(solo||NET.role==='host'))doWin();
+    }else doorTimer=0;
+  }
+  /* ส่งข้อมูลออนไลน์ */
+  if(!solo&&NET.conn&&NET.conn.open){
+    netAcc+=dt;
+    if(netAcc>=1/15){
+      netAcc=0;
+      send({t:'s',p:[+me.x.toFixed(2),+me.y.toFixed(2),+me.z.toFixed(2),+me.yaw.toFixed(2),+me.sp.toFixed(2),me.grounded?0:1,me.atDoor?1:0,+me.vy.toFixed(1)]});
+    }
+    if(NET.role==='host'){timeAcc+=dt;if(timeAcc>=0.5){timeAcc=0;send({t:'time',lt,lv});}}
+  }
+  hudAcc+=dt;if(hudAcc>0.5){hudAcc=0;updateHud();}
+  /* ตัวละครบนจอ */
+  gtime+=dt;
+  catMe.root.position.set(me.x,me.y,me.z);catMe.root.rotation.y=me.yaw;
+  animCat(catMe,gtime,me.sp,!me.grounded,me.vy);
+  me.doorScale=lerp(me.doorScale,me.atDoor?0.02:1,0.18);catMe.root.scale.setScalar(Math.max(0.02,me.doorScale));
+  catMe.root.visible=me.inv<=0||(Math.floor(gtime*14)%2===0);
+  placeShadow(catMe,me.x,me.y,me.z);
+  if(peerState.has){
+    const k=1-Math.exp(-dt*16);
+    peerState.x=lerp(peerState.x,peerState.tx,k);peerState.y=lerp(peerState.y,peerState.ty,k);peerState.z=lerp(peerState.z,peerState.tz,k);
+    catOther.root.position.set(peerState.x,peerState.y,peerState.z);
+    catOther.root.rotation.y=angLerp(catOther.root.rotation.y,peerState.yaw,k);
+    animCat(catOther,gtime+1.7,peerState.sp,!!peerState.air,peerState.vy);
+    peerState.doorScale=lerp(peerState.doorScale,peerState.atDoor?0.02:1,0.18);catOther.root.scale.setScalar(Math.max(0.02,peerState.doorScale));
+    placeShadow(catOther,peerState.x,peerState.y,peerState.z);
+  }
+  /* ของในฉาก */
+  for(const k of RT.keys){if(!k.got){k.mesh.rotation.y=gtime*2;k.mesh.position.y=k.def.y+Math.sin(gtime*2.4)*0.12;}}
+  for(const a of RT.anims)a(gtime);
+  for(const d of decorList){d.g.rotation.x+=d.sx*dt;d.g.rotation.y+=d.sy*dt;}
+  updateCamera(dt);
+  updateBuddy();
+}
+function placeShadow(c,x,y,z){
+  const gy=groundBelow(x,y,z);
+  if(gy===null){c.shadow.visible=false;return;}
+  c.shadow.visible=c.root.visible!==false;
+  c.shadow.position.set(x,gy+0.03,z);
+  const s=clamp(1-(y-gy)*0.08,0.4,1);c.shadow.scale.set(s,s,s);
+}
+function updateCamera(dt){
+  const k=1-Math.exp(-dt*9);
+  cam.x=lerp(cam.x,me.x,k);cam.y=lerp(cam.y,me.y+1.3,k*0.8);cam.z=lerp(cam.z,me.z,k);
+  const dist=window.innerWidth/window.innerHeight<0.8?cam.dist+3:cam.dist;
+  const cp=Math.cos(cam.pitch);
+  camera.position.set(cam.x+Math.sin(cam.yaw)*cp*dist,cam.y+Math.sin(cam.pitch)*dist,cam.z+Math.cos(cam.yaw)*cp*dist);
+  camera.lookAt(cam.x,cam.y,cam.z);
+}
+const buddyEl=$('#buddy'),_v=new THREE.Vector3();
+function updateBuddy(){
+  if(!peerState.has){buddyEl.style.display='none';return;}
+  _v.set(peerState.x,peerState.y+1,peerState.z).project(camera);
+  const w=window.innerWidth,h=window.innerHeight;
+  const behind=_v.z>1;
+  let x=_v.x,y=_v.y;
+  if(behind){x=-x;y=-y;}
+  if(!behind&&Math.abs(x)<0.92&&Math.abs(y)<0.88){buddyEl.style.display='none';return;}
+  const m=Math.max(Math.abs(x)/0.9,Math.abs(y)/0.82,0.0001);
+  x/=m;y/=m;
+  const px=(x*0.5+0.5)*w,py=(1-(y*0.5+0.5))*h;
+  const ang=Math.atan2(-y*h,x*w);          // ลูกศรชี้ออกจากกลางจอ
+  buddyEl.style.display='grid';
+  buddyEl.style.setProperty('--bc','#'+(CAT_HEX[otherColor()||'blue']).toString(16).padStart(6,'0'));
+  buddyEl.style.transform='translate('+(px-22)+'px,'+(py-22)+'px)';
+  buddyEl.firstElementChild.style.transform='rotate('+(ang+Math.PI/2)+'rad)';
+}
+let menuT=0;
+function updateMenu(dt){
+  menuT+=dt;
+  const a=Math.sin(menuT*0.35)*0.5,portrait=window.innerWidth/window.innerHeight<0.8;
+  const d=portrait?11:8.5;
+  camera.position.set(Math.sin(a)*d,3.2,Math.cos(a)*d);
+  camera.lookAt(0,portrait?-0.9:0.7,0);
+  prevCats.forEach((c,i)=>{animCat(c,menuT+i*1.3,0,false,0);c.root.position.y=Math.max(0,Math.sin(menuT*2.2+i*1.7))*0.35*(c.mats[0].opacity>0.9?1:0);});
+  for(const d2 of menuDecor){d2.g.rotation.x+=d2.sx*dt;d2.g.rotation.y+=d2.sy*dt;}
+}
+let last=performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(0.05,Math.max(0.001,(now-last)/1000));last=now;
+  if(state==='game'&&RT)updateGame(dt);else updateMenu(dt);
+  renderer.render(scene,camera);
+}
+showScreen(screenName==='join'||$('#sc-join').classList.contains('on')?'join':'title');
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
