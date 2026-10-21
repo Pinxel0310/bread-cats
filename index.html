@@ -241,7 +241,8 @@ input{-webkit-user-select:text;user-select:text}
   <h2>เมนู</h2>
   <button class="btn" id="mn-respawn">กลับจุดเริ่มด่าน</button>
   <div id="mn-levels" style="display:none"><p class="muted" style="margin-bottom:8px">เลือกด่าน (เฉพาะโฮสต์)</p><div class="lvgrid" id="lvgrid"></div></div>
-  <div class="row"><button class="btn" id="mn-sound">เสียง: เปิด</button><button class="btn" id="mn-full">เต็มจอ</button></div>
+  <div class="row"><button class="btn" id="mn-sound">เสียง: เปิด</button><button class="btn" id="mn-music">เพลง: เปิด</button></div>
+  <button class="btn" id="mn-full">เต็มจอ</button>
   <button class="btn primary" id="mn-close">เล่นต่อ</button>
   <button class="btn link" id="mn-leave">ออกจากห้อง</button>
 </div></div>
@@ -448,7 +449,44 @@ const Snd=(()=>{
   function ensure(){
     if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}
     if(ac&&ac.state==='suspended')ac.resume();
+    startMusic();
   }
+  /* ---- เพลงประกอบ: สังเคราะห์สดด้วย WebAudio ไม่ต้องมีไฟล์เสียง ----
+     คอร์ด C - Am - F - G วนไปเรื่อยๆ จังหวะ 126 BPM ทำนองกระโดดโลดเต้นแบบเกมขนม */
+  let musicOn=true,mGain=null,mTimer=0,mStep=0,mNext=0;
+  const M_STEP=60/126/2;                     // 1 ก้าว = โน้ตตัวเขบ็ต 1 ชั้น (ครึ่งจังหวะ)
+  const MEL=[76,0,72,76,79,0,76,72,  69,0,72,76,81,0,76,72,  77,0,72,77,81,0,77,72,  79,0,74,79,83,79,74,71,
+             84,0,79,76,79,0,76,72,  81,0,76,72,76,0,81,0,    77,79,81,77,84,0,81,77,  79,0,83,79,86,0,83,0];
+  const BASS=[48,45,41,43,48,45,41,43];     // รากคอร์ดต่อห้อง (1 ห้อง = 8 ก้าว)
+  const mf=n=>440*Math.pow(2,(n-69)/12);
+  function mNote(n,t,d,type,v){
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.type=type;o.frequency.value=mf(n);
+    g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(v,t+0.012);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+    o.connect(g);g.connect(mGain);o.start(t);o.stop(t+d+0.03);
+  }
+  function mSchedule(){
+    if(!ac||ac.state!=='running')return;
+    if(mNext<ac.currentTime)mNext=ac.currentTime+0.06;
+    while(mNext<ac.currentTime+0.25){
+      const i=mStep%MEL.length,bar=Math.floor(mStep/8)%8,k=i%8,t=mNext;
+      if(MEL[i])mNote(MEL[i],t,M_STEP*1.7,'triangle',0.20);
+      if(k===0||k===4)mNote(BASS[bar],t,M_STEP*1.9,'square',0.07);          // เบสตุ้บ
+      if(k===2||k===6)mNote(BASS[bar]+12,t,M_STEP*0.8,'square',0.035);      // เบสเด้งขึ้น
+      if(k%2===1)mNote(96,t,0.04,'square',0.012);                            // จังหวะแทมบูรีนเบาๆ
+      mStep++;mNext+=M_STEP;
+    }
+  }
+  function startMusic(){
+    if(!ac||mTimer)return;
+    mGain=ac.createGain();mGain.gain.value=musicOn&&!muted?0.55:0;mGain.connect(ac.destination);
+    mTimer=setInterval(mSchedule,50);
+  }
+  function applyMusic(){if(mGain)mGain.gain.setTargetAtTime(musicOn&&!muted?0.55:0,ac.currentTime,0.05);}
+  document.addEventListener('visibilitychange',()=>{
+    if(!ac)return;
+    if(document.hidden)ac.suspend();else ac.resume();
+  });
   function tone(f,d,type,v,to){
     if(!ac||muted)return;
     const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
@@ -460,7 +498,8 @@ const Snd=(()=>{
   const later=(fn,ms)=>setTimeout(fn,ms);
   return{
     ensure,
-    get muted(){return muted;},set muted(v){muted=v;},
+    get muted(){return muted;},set muted(v){muted=v;applyMusic();},
+    get music(){return musicOn;},set music(v){musicOn=v;applyMusic();},
     jump(){tone(380,.16,'triangle',.09,720);},
     key(){tone(880,.1,'square',.05);later(()=>tone(1320,.2,'square',.05),90);},
     pad(on){tone(on?520:360,.08,'sine',.07);},
@@ -477,7 +516,7 @@ const SKY=0xcdeee0;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(SKY);
 scene.fog=new THREE.Fog(SKY,45,140);
-const camera=new THREE.PerspectiveCamera(58,1,0.1,400);
+const camera=new THREE.PerspectiveCamera(58,1,0.5,320);
 const renderer=new THREE.WebGLRenderer({canvas:$('#c'),antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 scene.add(new THREE.HemisphereLight(0xfff8ea,0xd8b48a,0.95));
@@ -551,7 +590,7 @@ catOther.root.visible=catOther.shadow.visible=false;
 const prevCats=[makeCat(CAT_HEX.pink),makeCat(CAT_HEX.blue)];
 (function(){
   const base=new THREE.Group();
-  const body=new THREE.Mesh(new THREE.BoxGeometry(7,1,6),M(0xc98340));body.position.y=-0.5;
+  const body=new THREE.Mesh(new THREE.BoxGeometry(7,0.96,6),M(0xc98340));body.position.y=-0.04-0.48;   // จมใต้แผ่นหน้า กัน z-fighting
   const top=new THREE.Mesh(new THREE.BoxGeometry(7.2,0.26,6.2),M(0xffe2a6));top.position.y=-0.13;
   base.add(body,top);menuGroup.add(base);
   prevCats.forEach((c,i)=>{c.root.position.set(i?1.7:-1.7,0,0);menuGroup.add(c.root);});
@@ -567,15 +606,15 @@ function makeDecor(rnd,x,y,z,reg){
   const pal=[0xff9cc2,0xffd666,0xa7e0ff,0xc7b6ff,0x9fe3c0];
   const c=pal[Math.floor(rnd()*pal.length)];
   if(k===0){
-    const d=new THREE.Mesh(flat(new THREE.TorusGeometry(1,0.45,6,10)),M(0xe3b36d));
-    const f=new THREE.Mesh(flat(new THREE.TorusGeometry(1,0.47,6,10)),M(c));f.scale.set(1,1,0.55);f.position.z=0.12;g.add(d,f);
+    const d=new THREE.Mesh(flat(new THREE.TorusGeometry(1,0.42,6,10)),M(0xe3b36d));
+    const f=new THREE.Mesh(flat(new THREE.TorusGeometry(1,0.5,6,10)),M(c));f.scale.set(1,1,0.5);f.position.z=0.2;g.add(d,f);
   }else if(k===1){
     const ck=new THREE.Mesh(flat(new THREE.CylinderGeometry(1,1,0.36,9)),M(0xe8b878));ck.rotation.x=Math.PI/2;g.add(ck);
     for(let i=0;i<5;i++){const ch=new THREE.Mesh(new THREE.SphereGeometry(0.14,5,4),M(0x5a3220));ch.position.set((rnd()-.5)*1.1,(rnd()-.5)*1.1,0.2);g.add(ch);}
   }else{
     const a=new THREE.Mesh(flat(new THREE.CylinderGeometry(0.9,0.8,0.32,10)),M(c));a.position.y=0.26;
     const b=new THREE.Mesh(flat(new THREE.CylinderGeometry(0.8,0.9,0.32,10)),M(c));b.position.y=-0.26;
-    const m=new THREE.Mesh(new THREE.CylinderGeometry(0.78,0.78,0.22,10),M(0xfffaf0));g.add(a,b,m);
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(0.74,0.74,0.3,10),M(0xfffaf0));g.add(a,b,m);
   }
   const s=0.9+rnd()*1.4;g.scale.setScalar(s);g.position.set(x,y,z);
   g.rotation.set(rnd()*3,rnd()*3,rnd()*3);
@@ -594,19 +633,20 @@ function clearWorld(){
 }
 function buildPlat(p){
   const g=new THREE.Group(),pal=p.mv?PAL.mint:PAL[p.t];
-  const body=new THREE.Mesh(geo(new THREE.BoxGeometry(p.w,p.h,p.d)),M(pal[0]));body.position.y=-p.h/2;
+  const bh=p.h-0.04;   // ต่ำกว่าแผ่นหน้า 0.04 กัน z-fighting (หน้าบนซ้อนกันแล้วกระพริบ)
+  const body=new THREE.Mesh(geo(new THREE.BoxGeometry(p.w,bh,p.d)),M(pal[0]));body.position.y=-0.04-bh/2;
   const top=new THREE.Mesh(geo(new THREE.BoxGeometry(p.w+0.16,0.24,p.d+0.16)),M(pal[1]));top.position.y=-0.12;
   g.add(body,top);
   const rnd=rng(Math.floor(p.x*13+p.z*7+p.w*3)+99);
   if(!p.mv&&p.t==='biscuit'){
     const n=clamp(Math.round(p.w*p.d/3),2,9),cg=geo(new THREE.CylinderGeometry(0.14,0.14,0.02,8));
-    for(let i=0;i<n;i++){const c=new THREE.Mesh(cg,M(0x6b3a22));c.position.set((rnd()-.5)*(p.w-0.6),0.012,(rnd()-.5)*(p.d-0.6));g.add(c);}
+    for(let i=0;i<n;i++){const c=new THREE.Mesh(cg,M(0x6b3a22));c.position.set((rnd()-.5)*(p.w-0.6),0.03,(rnd()-.5)*(p.d-0.6));g.add(c);}
   }else if(!p.mv&&p.t==='choc'){
     const lg=geo(new THREE.BoxGeometry(p.w,0.02,0.05));
-    for(let z=-p.d/2+1.6;z<p.d/2-0.4;z+=1.6){const l=new THREE.Mesh(lg,M(0x9a5f38));l.position.set(0,0.012,z);g.add(l);}
+    for(let z=-p.d/2+1.6;z<p.d/2-0.4;z+=1.6){const l=new THREE.Mesh(lg,M(0x9a5f38));l.position.set(0,0.03,z);g.add(l);}
   }else if(!p.mv&&p.t==='cream'){
     const dg=geo(new THREE.SphereGeometry(0.16,6,4));
-    for(let i=0;i<4;i++){const d=new THREE.Mesh(dg,M(0xff8fb8));d.scale.y=0.5;d.position.set((rnd()-.5)*(p.w-0.5),0.02,(rnd()-.5)*(p.d-0.5));g.add(d);}
+    for(let i=0;i<4;i++){const d=new THREE.Mesh(dg,M(0xff8fb8));d.scale.y=0.5;d.position.set((rnd()-.5)*(p.w-0.5),0.03,(rnd()-.5)*(p.d-0.5));g.add(d);}
   }
   g.position.set(p.x,p.y,p.z);return g;
 }
@@ -1111,12 +1151,14 @@ $('#btn-menu').onclick=()=>{
   $('#mn-levels').style.display=host?'block':'none';
   $$('#lvgrid button').forEach((b,i)=>b.classList.toggle('cur',i===lv));
   $('#mn-sound').textContent='เสียง: '+(Snd.muted?'ปิด':'เปิด');
+  $('#mn-music').textContent='เพลง: '+(Snd.music?'เปิด':'ปิด');
   $('#mn-full').style.display=document.fullscreenEnabled?'block':'none';
   showModal('m-menu');
 };
 $('#mn-close').onclick=()=>{menuOpen=false;hideModal('m-menu');};
 $('#mn-respawn').onclick=()=>{menuOpen=false;hideModal('m-menu');respawn();};
 $('#mn-sound').onclick=()=>{Snd.muted=!Snd.muted;$('#mn-sound').textContent='เสียง: '+(Snd.muted?'ปิด':'เปิด');};
+$('#mn-music').onclick=()=>{Snd.music=!Snd.music;$('#mn-music').textContent='เพลง: '+(Snd.music?'เปิด':'ปิด');};
 $('#mn-full').onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}catch(e){}};
 $('#mn-leave').onclick=leaveToTitle;
 $('#dc-leave').onclick=leaveToTitle;
